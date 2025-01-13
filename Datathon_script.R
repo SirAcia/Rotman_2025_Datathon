@@ -13,5 +13,6 @@ library(readxl)
 
 # Importing and cleaning data ----------------------------------------------------------------------------------------
 
-#read csv
+#read raw data and metdata files
 raw_data <- read_excel("/Users/mausamvk/Desktop/Rotman 2025 Datathon Dataset/Datathon_data-2025-Raw.xlsx")
+metadata <- read_excel("/Users/mausamvk/Desktop/Rotman 2025 Datathon Dataset/Datathon_data-2025-Raw Metadata.xlsx")
