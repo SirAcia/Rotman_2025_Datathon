@@ -10,6 +10,7 @@ library(knitr)
 library(kableExtra)
 library(readxl)
 library(lubridate)
+library(mice)
 
 #### DATA READING ####
 
@@ -23,8 +24,8 @@ footnote_meta <- read_excel("Datathon_data-2025-Raw Metadata.xlsx", sheet = 5)
 
 #### DATA PREPROCESSING AND CLEANING ####
 
-# Savign in new df 
-data <- raw_data
+# Saving in new df 
+data < raw_data
 
 # NAs in data
 anyNA(data)
@@ -42,7 +43,7 @@ for (col in colnames(data)) {
 
 dim(data)
 
-# Using for loop to converty character format into numeric for relevant indicators
+# Using for loop to converts character format into numeric for relevant indicators
 for (col in colnames(data)) {
   if (!col %in% c("Country Name", "Country Code", "Time", "Time Code")) {
     data[[col]] <- as.numeric(data[[col]])
@@ -102,7 +103,7 @@ selected_data <- data %>%
     
     # Supply chain indicators 
     # LPI 
-    lpi_LP.LPI.INFR.XQ = "Logistics performance index: Quality of trade and transport-related infrastructure (1=low to 5=high) [LP.LPI.INFR.XQ]",
+    lpi_LP.LPI.INFR.XQ = "Logistics performance index: Quality of trade and transport-related infrastructure (1=low to 5=high) [LP.LPI.INFR.XQ]", 
     
     # Freight Rate Indices
     transport_comm_export_TX.VAL.TRAN.ZS.WT ="Transport services (% of commercial service exports) [TX.VAL.TRAN.ZS.WT]",
@@ -246,10 +247,11 @@ nonmiss_data$unemployment_SL.UEM.TOTL.NE.ZS <- selected_data$unemployment_SL.UEM
 
 nonmiss_data$unemployment_youth_SL.UEM.1524.NE.ZS <- selected_data$unemployment_youth_SL.UEM.1524.NE.ZS
 
+nonmiss_data$lpi_LP.LPI.INFR.XQ <- selected_data$lpi_LP.LPI.INFR.XQ 
+
 dim(nonmiss_data)
 
-################################################
-###Subsetting for different Countries/Regions###
+#### Subsetting for different Countries/Regions ####
 
 #G7
 g7 <- nonmiss_data %>%
@@ -313,19 +315,123 @@ global.north <- nonmiss_data %>%
     "Portugal", "San Marino", "Slovenia", "Spain", "Sweden", "Switzerland", "United Kingdom", "United States"
   ))
 
+#### DATA IMPUTATION ####
+
+imputed_data <- mice(
+  data = nonmiss_data,
+  method = 'mean',
+  m = 1,           # Number of multiple imputations
+  maxit = 10,      # Number of iterations
+  seed = 123,      # Set seed for reproducibility
+  by = nonmiss_data$country_code  # Group imputation by country
+)
+
+completed_data <- complete(imputed_data, 1)  # Replace '1' with the index of the dataset you want
 
 #### PCA ANALYSIS ####
 
+supply_chain_volatility <- completed_data %>%
+  select(
+  # LPI 
+  lpi_LP.LPI.INFR.XQ, 
+  # Freight Rate Indices
+  transport_comm_export_TX.VAL.TRAN.ZS.WT, 
+  transport_comm_import_TM.VAL.TRAN.ZS.WT, 
+  transport_export_bop_BX.GSR.TRAN.ZS, 
+  transport_import_bop_BM.GSR.TRAN.ZS, 
+  # BOTH PPI and supply chain variables 
+  manufacturing_GDP_NV.IND.MANF.ZS, 
+  manufacturing_growth_NV.IND.MANF.KD.ZG, 
+  manufacturer_exports_TX.VAL.MANF.ZS.UN, 
+  manufacturer_imports_TM.VAL.MANF.ZS.UN, 
+  # Producer Price Index (PPI) 
+  exports_GDP_NE.EXP.GNFS.ZS, 
+  exports_growth_NE.EXP.GNFS.KD.ZG, 
+  import_unit_index_TM.UVI.MRCH.XD.WD, 
+  import_value_index_TM.VAL.MRCH.XD.WD, 
+  import_volume_index_TM.QTY.MRCH.XD.WD, 
+  oil_rents_NY.GDP.PETR.RT.ZS, 
+  ore_exports_TX.VAL.MMTL.ZS.UN, 
+  ore_imports_TM.VAL.MMTL.ZS.UN, 
+  # Supply Chain Volatility Index 
+  net_trade_goods_service_BN.GSR.GNFS.CD, 
+  net_trade_goods_BN.GSR.MRCH.CD, 
+  trade_GDP_NE.TRD.GNFS.ZS, 
+  trade_services_BG.GSR.NFSV.GD.ZS, 
+  mechandise_exports_TX.VAL.MRCH.CD.WT, 
+  mechandise_imports_TM.VAL.MRCH.CD.WT, 
+  mechandise_trade_TG.VAL.TOTL.GD.ZS, 
+  exports_GDP_NE.EXP.GNFS.ZS, 
+  exports_growth_NE.EXP.GNFS.KD.ZG, 
+  imports_GDP_NE.IMP.GNFS.ZS, 
+  imports_growth_NE.IMP.GNFS.KD.ZG, 
+  current_account_GDP_BN.CAB.XOKA.GD.ZS, 
+  current_account_USD_BN.CAB.XOKA.CD
+  )
 
+apply(supply_chain_volatility, 2, mean)
+apply(supply_chain_volatility, 2, var)
 
+pr_out <- prcomp(supply_chain_volatility, scale=TRUE)
 
+loadings_volatility <- pr_out$rotation
 
+pca_scores <- pr_out$x
 
+volatility_variable <- pca_scores[, 1]
 
+volatility_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings[, 1]
 
+explained_variance_volatility <- (pr_out_volatility$sdev)^2
+explained_variance_ratio_volatility <- explained_variance / sum(explained_variance)
+explained_variance_ratio_volatility[1]
 
+completed_data$volatility_variable <- (volatility_variable)^2
 
+#### PCA volatility 
 
+supply_chain_cost <- completed_data %>%
+  select(
+    # Freight Rate Indices
+    transport_comm_export_TX.VAL.TRAN.ZS.WT, 
+    transport_comm_import_TM.VAL.TRAN.ZS.WT, 
+    transport_export_bop_BX.GSR.TRAN.ZS, 
+    transport_import_bop_BM.GSR.TRAN.ZS, 
+    # BOTH PPI and supply chain variables 
+    manufacturer_exports_TX.VAL.MANF.ZS.UN, 
+    manufacturer_imports_TM.VAL.MANF.ZS.UN, 
+    # Producer Price Index (PPI) 
+    oil_rents_NY.GDP.PETR.RT.ZS, 
+    ore_exports_TX.VAL.MMTL.ZS.UN, 
+    ore_imports_TM.VAL.MMTL.ZS.UN, 
+    # Supply Chain Volatility Index 
+    net_trade_goods_service_BN.GSR.GNFS.CD, 
+    net_trade_goods_BN.GSR.MRCH.CD, 
+    exports_GDP_NE.EXP.GNFS.ZS, 
+    imports_GDP_NE.IMP.GNFS.ZS, 
+  )
+
+apply(supply_chain_cost, 2, mean)
+apply(supply_chain_cost, 2, var)
+
+pr_out_cost <- prcomp(supply_chain_cost, scale=TRUE)
+
+loadings_cost <- pr_out_cost$rotation
+
+pca_scores <- pr_out_cost$x
+
+cost_variable <- pca_scores[, 1]
+
+cost_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings[, 1]
+
+explained_variance_cost <- (pr_out_cost$sdev)^2
+explained_variance_ratio_cost <- explained_variance / sum(explained_variance)
+explained_variance_ratio_cost[1]
+
+completed_data$cost_variable <- (cost_variable)^2
+
+test <- completed_data %>%
+  select(country_name, volatility_variable, cost_variable)
 
   
 
