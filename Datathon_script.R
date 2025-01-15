@@ -1,6 +1,5 @@
 #Rotman Datathon 2025
-# Libraries ----------------------------------------------------------------------------------------------------------
-
+#### Libraries 
 library(tidyverse)
 library(funModeling)
 library(Hmisc)
@@ -12,9 +11,9 @@ library(kableExtra)
 library(readxl)
 library(lubridate)
 
-# Importing and cleaning data ----------------------------------------------------------------------------------------
+#### DATA READING ####
 
-#read raw data and metdata files
+# Read raw data and metdata files
 raw_data <- read_excel("Datathon_data-2025-Raw.xlsx", sheet = 1)
 series_meta <- read_excel("Datathon_data-2025-Raw.xlsx", sheet = 2)
 country_meta <- read_excel("Datathon_data-2025-Raw Metadata.xlsx", sheet = 2)
@@ -22,8 +21,41 @@ country.series_meta <- read_excel("Datathon_data-2025-Raw Metadata.xlsx", sheet 
 series.time_meta <- read_excel("Datathon_data-2025-Raw Metadata.xlsx", sheet = 4)
 footnote_meta <- read_excel("Datathon_data-2025-Raw Metadata.xlsx", sheet = 5)
 
+#### DATA PREPROCESSING AND CLEANING ####
+
+# Savign in new df 
+data <- raw_data
+
+# NAs in data
+anyNA(data)
+# All in last 5 rows
+
+# Removing last 5 rows as they contain no data/observations 
+data <- data[-(3256: 3260), ]
+
+# Recoding ".." as NAs
+for (col in colnames(data)) {
+  if (any(data[[col]] == "..", na.rm = TRUE)) {
+    data[[col]][data[[col]] == ".."] <- NA
+  }
+}
+
+dim(data)
+
+# Using for loop to converty character format into numeric for relevant indicators
+for (col in colnames(data)) {
+  if (!col %in% c("Country Name", "Country Code", "Time", "Time Code")) {
+    data[[col]] <- as.numeric(data[[col]])
+  }
+  else {
+    data[[col]] <- data[[col]]
+  }
+}
+
+#### VARIABLE SELECTION #####
+
 # Renaming the relevant columns
-data <- raw_data %>%
+selected_data <- data %>%
   rename(
     # Country Identifiers 
     country_name = "Country Name",
@@ -117,7 +149,7 @@ data <- raw_data %>%
     exchange_rate_PX.REX.REER = "Real effective exchange rate index (2010 = 100) [PX.REX.REER]"
   )
 
-data <- data %>%
+selected_data <- selected_data %>%
   select(country_name, 
          country_code, 
          year, 
@@ -181,48 +213,13 @@ data <- data %>%
          exchange_rate_PX.REX.REER, 
   )
          
-colnames(data)
+colnames(selected_data)
 
-dim(data)
+dim(selected_data)
 
-# NAs in data
-anyNA(data)
-# All in last 5 rows
+#### ADDRESSING MISSINGNESS 
 
-#### Data preprocessing and cleaning ####
-
-# Removing last 5 rows as they contain no data/observations 
-data <- data[-(3256: 3260), ]
-
-# Recoding ".." as NAs
-for (col in colnames(data)) {
-  if (any(data[[col]] == "..", na.rm = TRUE)) {
-    data[[col]][data[[col]] == ".."] <- NA
-  }
-}
-
-dim(data)
-
-# Using for loop to converty character format into numeric for relevant indicators
-for (col in colnames(data)) {
-  if (!col %in% c("country_name", "country_code", "time", "time_code")) {
-    data[[col]] <- as.numeric(data[[col]])
-  }
-}
-
-###### I'm Confused #####
-# converting from list to dataframe 
-data_mtrx <- as.data.frame(data)
-
-summary(data_mtrx)
-
-##########################
-
-# Storing cleaned data with all variables in seperate df
-clean_data <- data
-
-# addressing high missingness in variables 
-nonmiss_data <- clean_data 
+nonmiss_data <- selected_data 
 
 # removing any variables with >30% missingness 
 for (col in colnames(nonmiss_data)){
@@ -236,8 +233,34 @@ for (col in colnames(nonmiss_data)){
 }
 
 # Originally 283 variables
-dim(clean_data)
+dim(selected_data)
 
 # 147 variables removed due to high degree of missingness, left with 136 variables
 dim(nonmiss_data)
+
+# Key variables removed: unemployment (0.4267281), youth unemployment (0.4792627), and GINI coefficient (0.6746544)
+# need to add back despite high missingness 
+nonmiss_data$gini_SI.POV.GINI <- selected_data$gini_SI.POV.GINI
+
+nonmiss_data$unemployment_SL.UEM.TOTL.NE.ZS <- selected_data$unemployment_SL.UEM.TOTL.NE.ZS
+
+nonmiss_data$unemployment_youth_SL.UEM.1524.NE.ZS <- selected_data$unemployment_youth_SL.UEM.1524.NE.ZS
+
+dim(nonmiss_data)
+
+#### PCA ANALYSIS ####
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
 
