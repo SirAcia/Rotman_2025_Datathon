@@ -11,6 +11,7 @@ library(kableExtra)
 library(readxl)
 library(lubridate)
 library(mice)
+library(corrplot)
 
 #### DATA READING ####
 
@@ -155,6 +156,8 @@ selected_data <- selected_data %>%
          country_code, 
          year, 
          time_code, 
+         inflation,
+         inflation_deflator,
          net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, 
          net_nat_income_NY.ADJ.NNTY.CD, 
          household_expenditure_GDP, 
@@ -436,6 +439,50 @@ completed_data$cost_variable <- (cost_variable)^2
 test <- completed_data %>%
   select(country_name, volatility_variable, cost_variable)
 
-  
+#############################
+## Correlation Insights ##
+
+#Q1. What patterns emerge between cost-of-living increases and supply chain disruptions?
+
+#visualize trend in inflation 
+ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
+  geom_line() +
+  labs(title = "Inflation Trend Over Years", x = "Year", y = "Inflation (annual %)", color = "Country") +
+  theme_minimal() +
+  scale_x_continuous(breaks = unique(countries$year)) + # Ensure all years are labeled
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels if needed for readability
+  )
+
+
+## determine correlation between cost of living indicators and supply chain volatility ##
+#' Define groups of variables
+living_cost <- countries %>%
+  select(inflation, inflation_deflator, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
+         household_expenditure_GDP, household_expenditure_per_capita, household_expenditure_ppp)
+
+supply_chain <- countries %>%
+  select(volatility_variable, cost_variable)
+         
+
+#' Compute correlation matrix between group1 and group2
+cor_matrix <- cor(living_cost, supply_chain, use = "pairwise.complete.obs")
+
+#' Plot the correlation heatmap
+corrplot(cor_matrix, method = "color", is.corr = TRUE, 
+         tl.cex = 0.8, number.cex = 0.7,
+         title = "Correlation of Cost of Living indicators with Supply Chain Volatility and Costs",
+         mar = c(0, 0, 1, 0))
+
+
+
+
+
+
+
+
+
+
 
 
