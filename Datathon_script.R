@@ -12,6 +12,9 @@ library(readxl)
 library(lubridate)
 library(mice)
 library(corrplot)
+library(car)
+library(ggplot2)
+library(multcomp)
 
 #### DATA READING ####
 
