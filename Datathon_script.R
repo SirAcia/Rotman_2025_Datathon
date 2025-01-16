@@ -15,6 +15,7 @@ library(corrplot)
 library(car)
 library(ggplot2)
 library(multcomp)
+library(lme4)
 
 #### DATA READING ####
 
@@ -229,6 +230,7 @@ dim(selected_data)
 
 #### ADDRESSING MISSINGNESS 
 
+# storing in new df
 nonmiss_data <- selected_data 
 
 # removing any variables with >30% missingness 
@@ -262,82 +264,116 @@ dim(nonmiss_data)
 
 #### DATA IMPUTATION ####
 
+# grouping by country, using mean imputation 
 imputed_data <- mice(
   data = nonmiss_data,
-  method = 'mean', #mean imputation
-  m = 1,           # Number of multiple imputations
-  maxit = 10,      # Number of iterations
+  method = 'mean', # mean imputation
+  m = 1,           
+  maxit = 10,     
   seed = 123,      # Set seed for reproducibility
   by = nonmiss_data$country_code  # Group imputation by country
 )
 
-completed_data <- complete(imputed_data, 1)  # Replace '1' with the index of the dataset you want
+# getting complete dataset 
+completed_data <- complete(imputed_data, 1)  
 
-#### PCA ANALYSIS ####
+#### PCA FOR COMPOSITE VARIABLES ####
 
-#### PCA volatility
+### volatility index
 
+# getting variables measuing supply chain
 supply_chain_volatility <- completed_data %>%
   dplyr::select(
     # LPI 
-    lpi_LP.LPI.INFR.XQ, 
+    lpi_LP.LPI.INFR.XQ, # bigger is better 
     # Freight Rate Indices
-    transport_comm_export_TX.VAL.TRAN.ZS.WT, 
-    transport_comm_import_TM.VAL.TRAN.ZS.WT, 
-    transport_export_bop_BX.GSR.TRAN.ZS, 
-    transport_import_bop_BM.GSR.TRAN.ZS, 
+    transport_comm_export_TX.VAL.TRAN.ZS.WT, # bigger is better 
+    transport_comm_import_TM.VAL.TRAN.ZS.WT, # smaller is better 
+    transport_export_bop_BX.GSR.TRAN.ZS, # bigger is better 
+    transport_import_bop_BM.GSR.TRAN.ZS, # smaller is better 
     # BOTH PPI and supply chain variables 
-    manufacturing_GDP_NV.IND.MANF.ZS, 
-    manufacturing_growth_NV.IND.MANF.KD.ZG, 
-    manufacturer_exports_TX.VAL.MANF.ZS.UN, 
-    manufacturer_imports_TM.VAL.MANF.ZS.UN, 
+    manufacturing_GDP_NV.IND.MANF.ZS, # bigger is better 
+    manufacturing_growth_NV.IND.MANF.KD.ZG, # bigger is better 
+    manufacturer_exports_TX.VAL.MANF.ZS.UN, # bigger is better 
+    manufacturer_imports_TM.VAL.MANF.ZS.UN, # smaller is better 
     # Producer Price Index (PPI) 
-    exports_GDP_NE.EXP.GNFS.ZS, 
-    exports_growth_NE.EXP.GNFS.KD.ZG, 
-    import_unit_index_TM.UVI.MRCH.XD.WD, 
-    import_value_index_TM.VAL.MRCH.XD.WD, 
-    import_volume_index_TM.QTY.MRCH.XD.WD, 
-    oil_rents_NY.GDP.PETR.RT.ZS, 
-    ore_exports_TX.VAL.MMTL.ZS.UN, 
-    ore_imports_TM.VAL.MMTL.ZS.UN, 
+    exports_GDP_NE.EXP.GNFS.ZS, # bigger is better 
+    exports_growth_NE.EXP.GNFS.KD.ZG, # bigger is better 
+    import_unit_index_TM.UVI.MRCH.XD.WD, # bigger is better 
+    import_value_index_TM.VAL.MRCH.XD.WD, # bigger is better 
+    import_volume_index_TM.QTY.MRCH.XD.WD, # bigger is better 
+    oil_rents_NY.GDP.PETR.RT.ZS, # smaller is better 
+    ore_exports_TX.VAL.MMTL.ZS.UN, # bigger is better 
+    ore_imports_TM.VAL.MMTL.ZS.UN, # smaller is better 
     # Supply Chain Volatility Index 
-    net_trade_goods_service_BN.GSR.GNFS.CD, 
-    net_trade_goods_BN.GSR.MRCH.CD, 
-    trade_GDP_NE.TRD.GNFS.ZS, 
-    trade_services_BG.GSR.NFSV.GD.ZS, 
-    mechandise_exports_TX.VAL.MRCH.CD.WT, 
-    mechandise_imports_TM.VAL.MRCH.CD.WT, 
-    mechandise_trade_TG.VAL.TOTL.GD.ZS, 
-    exports_GDP_NE.EXP.GNFS.ZS, 
-    exports_growth_NE.EXP.GNFS.KD.ZG, 
-    imports_GDP_NE.IMP.GNFS.ZS, 
-    imports_growth_NE.IMP.GNFS.KD.ZG, 
-    current_account_GDP_BN.CAB.XOKA.GD.ZS, 
-    current_account_USD_BN.CAB.XOKA.CD
+    net_trade_goods_service_BN.GSR.GNFS.CD, # bigger is better 
+    net_trade_goods_BN.GSR.MRCH.CD, # bigger is better 
+    trade_GDP_NE.TRD.GNFS.ZS, # bigger is better 
+    trade_services_BG.GSR.NFSV.GD.ZS, # bigger is better 
+    mechandise_exports_TX.VAL.MRCH.CD.WT, # bigger is better 
+    mechandise_imports_TM.VAL.MRCH.CD.WT, # smaller is better 
+    mechandise_trade_TG.VAL.TOTL.GD.ZS, # bigger is better 
+    exports_GDP_NE.EXP.GNFS.ZS, # bigger is better 
+    exports_growth_NE.EXP.GNFS.KD.ZG, # bigger is better 
+    imports_GDP_NE.IMP.GNFS.ZS, # smaller is better 
+    imports_growth_NE.IMP.GNFS.KD.ZG, # smaller is better 
+    current_account_GDP_BN.CAB.XOKA.GD.ZS, # bigger is better 
+    current_account_USD_BN.CAB.XOKA.CD # bigger is better 
   )
 
+# noting which variables are marked as smaller values is better 
+smaller_vars <- c(
+  "transport_comm_import_TM.VAL.TRAN.ZS.WT", 
+  "transport_import_bop_BM.GSR.TRAN.ZS", 
+  "manufacturer_imports_TM.VAL.MANF.ZS.UN", 
+  "oil_rents_NY.GDP.PETR.RT.ZS", 
+  "ore_imports_TM.VAL.MMTL.ZS.UN", 
+  "mechandise_imports_TM.VAL.MRCH.CD.WT", 
+  "imports_GDP_NE.IMP.GNFS.ZS", 
+  "imports_growth_NE.IMP.GNFS.KD.ZG"
+)
+
+# inversing "smaller is better" variables by getting reciprocal
+supply_chain_volatility <- supply_chain_volatility %>%
+  mutate(across(all_of(smaller_vars), 
+                ~ if_else(. != 0 & !is.na(.), 1 / ., .), 
+                .names = "reciprocal_{.col}"))
+# needed for PCA as everything should be scaled and directionally aligned for best measure of multi-dimensional variance 
+
+# calculating mean and variance for variables 
 apply(supply_chain_volatility, 2, mean)
+
 apply(supply_chain_volatility, 2, var)
 
+# creating PCA with scaling 
 pr_out_volatility <- prcomp(supply_chain_volatility, scale=TRUE)
 
+# getting loadings for PCA
 loadings_volatility <- pr_out_volatility$rotation
 
+# extracts the PCA scores
 pca_scores <- pr_out_volatility$x
 
+# selecting the first column of the PCA scores AKA first principal component (PC1),
 volatility_variable <- pca_scores[, 1]
 
+# computes a weighted sum of the original variables using first PCA loading as weights 
 volatility_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings_volatility[, 1]
 
+# seeing how much of the variance is explained by PCA
 explained_variance_volatility <- (pr_out_volatility$sdev)^2
 explained_variance_ratio_volatility <- explained_variance_volatility / sum(explained_variance_volatility)
 explained_variance_ratio_volatility[1]
 
+# getting linear combination, squaring to remove negatives
 completed_data$volatility_variable <- (volatility_variable)^2
 
-#### PCA cost ####
+### Cost index
 
-supply_chain_cost <- completed_data %>%
+# doing same for cost index as was done for volatility index
+
+# getting variables measuring supply chain
+supply_chain_cost <- supply_chain_volatility %>%
   dplyr::select(
     # Freight Rate Indices
     transport_comm_export_TX.VAL.TRAN.ZS.WT, 
@@ -358,26 +394,35 @@ supply_chain_cost <- completed_data %>%
     imports_GDP_NE.IMP.GNFS.ZS, 
   )
 
+# calculating mean and variance for variables 
 apply(supply_chain_cost, 2, mean)
+
 apply(supply_chain_cost, 2, var)
 
+# creating PCA with scaling 
 pr_out_cost <- prcomp(supply_chain_cost, scale=TRUE)
 
+# getting loadings for PCA
 loadings_cost <- pr_out_cost$rotation
 
+# extracts the PCA scores
 pca_scores <- pr_out_cost$x
 
+# selecting the first column of the PCA scores AKA first principal component (PC1),
 cost_variable <- pca_scores[, 1]
 
+# computes a weighted sum of the original variables using first PCA loading as weights 
 cost_variable_weighted <- as.matrix(supply_chain_cost) %*% loadings_cost[, 1]
 
+# seeing how much of the variance is explained by PCA
 explained_variance_cost <- (pr_out_cost$sdev)^2
 explained_variance_ratio_cost <- explained_variance_cost / sum(explained_variance_cost)
 explained_variance_ratio_cost[1]
 
+# getting linear combination, squaring to remove negatives
 completed_data$cost_variable <- (cost_variable)^2
 
-#### Subsetting for different Countries/Regions ####
+#### SUBSETTING FOR DIFFERENT COUNTRIES/REGIONS ####
 
 #G7
 g7_countries <- c("Canada","France", "Germany", "Italy", "Japan", "United Kingdom", "United States")
@@ -443,9 +488,7 @@ gdp_countries <- c("United States", "China", "Germany", "Japan", "India",
                    "Saudi Arabia", "Switzerland") 
 countries <- subset(completed_data, country_name %in% gdp_countries)
 
-##############################
-#### Correlation Insights ####
-##############################
+#### CORRELATION INSIGHTS ####
 
 #Q1. What patterns emerge between cost-of-living increases and supply chain disruptions?
 
@@ -460,23 +503,31 @@ ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels if needed for readability
   )
 
-#### SCALING DATA ####
+#### SCALING PREDICTOR VARIABLES ####
+
+# selecting numeric variables 
 numeric_vars <- countries %>%
   dplyr::select(where(is.numeric)) %>%
   names()
 
+# scaling numeric variables 
 countries[numeric_vars] <- scale(countries[numeric_vars])
 
+# adding back in country code as a factor
 countries$country_code <- factor(countries$country_code)
 
+# adding observation year 
 countries$year <- countries$year
 
+# adding composite cost index 
 countries$cost_variable <- countries$cost_variable
 
+# adding composite volatility index  
 countries$volatility_variable <- countries$volatility_variable
 
-## determine correlation between cost of living indicators and supply chain volatility ##
-#' Define groups of variables
+#### DETERMINE CORRELATION BETWEEN COST OF LIVING INDICATORS AND SUPPLY CHAIN VOLATILITY ####
+
+# Define groups of variables
 living_cost <- countries %>%
   dplyr::select(consumer_price,inflation, inflation_deflator, gini_SI.POV.GINI, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
          household_expenditure_GDP, household_expenditure_per_capita, household_expenditure_ppp)
@@ -547,10 +598,10 @@ high_cor_pairs <- high_cor_pairs[!duplicated(t(apply(high_cor_pairs, 1, sort))),
 print(high_cor_pairs)
 
 # Cost of living predictors highly correlated with supply chain indicators
-#household_expenditure_ppp with mechandise_exports_TX.VAL.MRCH.CD.WT (0.7027965)
-#household_expenditure_ppp  with mechandise_imports_TM.VAL.MRCH.CD.WT (0.7663589)
-#household_expenditure_ppp with mechandise_imports_TM.VAL.MRCH.CD.WT   (0.8729368)
-         
+#household_expenditure_GDP WITH net_trade_goods_service_BN.GSR.GNFS.CD: (-0.7357246)
+#household_expenditure_GDP WITH net_trade_goods_BN.GSR.MRCH.CD: (-0.7372171)
+#household_expenditure_GDP WITH current_account_USD_BN.CAB.XOKA.CD: (-0.7065403)
+
 ###correlation of cost of living and composite supply chain indicators
 #' Compute correlation matrix between group1 and group2
 cor_matrix_composite <- cor(living_cost, composite_supply_chain,  method = "spearman")
@@ -560,75 +611,107 @@ corrplot(cor_matrix_composite, method = "color", is.corr = TRUE,
          tl.cex = 0.8, number.cex = 0.7,
          title = "Correlation of Cost of Living indicators with \n Composite Supply Chain Volatility and Costs Indicators",
          mar = c(0, 0, 1, 0))
+# nothing with huge correlation
 
-#####################
+#### REGRESSION MODELS ####
+countries$net_nat_income_percapita_NY.ADJ.NNTY.PC.CD
 #lm to test relationship between cost of living indicators and composite supply chain costs/volatility
-model_cost <- lm(cost_variable ~ consumer_price+inflation+inflation_deflator+
-  net_nat_income_NY.ADJ.NNTY.CD+
-  household_expenditure_GDP+
-  household_expenditure_per_capita+
-  household_expenditure_ppp+
-  gdp_percapita_NY.GDP.PCAP.PP.CD+    
-  gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-  gdp_deflator_NY.GDP.DEFL.ZS+       
-  life_expectancy_SP.DYN.LE00.IN+
-  health_expenditure_SH.XPD.CHEX.PP.CD+
-  health_expenditure_per_cap+
-  gini_SI.POV.GINI+
-  unemployment_SL.UEM.TOTL.NE.ZS+
-  unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
+model_cost <- lm(cost_variable ~ inflation+
+                   inflation_deflator+
+                   consumer_price+
+                   net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                   net_nat_income_NY.ADJ.NNTY.CD+
+                   household_expenditure_GDP+
+                   household_expenditure_per_capita+
+                   household_expenditure_ppp+
+                   gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                   gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                   gdp_deflator_NY.GDP.DEFL.ZS+   
+                   life_expectancy_SP.DYN.LE00.IN+
+                   health_expenditure_SH.XPD.CHEX.PP.CD+
+                   health_expenditure_per_cap+
+                   gini_SI.POV.GINI+
+                   unemployment_SL.UEM.TOTL.NE.ZS+
+                   unemployment_youth_SL.UEM.1524.NE.ZS, 
+                 data = countries)
 
 summary(model_cost)
+# signficant: consumer_price, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD
+# household_expenditure_GDP, gdp_percapita_NY.GDP.PCAP.PP.CD, gdp_deflator_NY.GDP.DEFL.ZS, gini_SI.POV.GINI    
+# unemployment_youth_SL.UEM.1524.NE.ZS
 
-model_volatility <- lm(volatility_variable ~ consumer_price+inflation+inflation_deflator+
+model_volatility <- lm(volatility_variable ~ inflation+
+                         inflation_deflator+
+                         consumer_price+
+                         net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
                          net_nat_income_NY.ADJ.NNTY.CD+
                          household_expenditure_GDP+
                          household_expenditure_per_capita+
                          household_expenditure_ppp+
-                         gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                         gdp_percapita_NY.GDP.PCAP.PP.CD+ 
                          gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                         gdp_deflator_NY.GDP.DEFL.ZS+       
+                         gdp_deflator_NY.GDP.DEFL.ZS+   
                          life_expectancy_SP.DYN.LE00.IN+
                          health_expenditure_SH.XPD.CHEX.PP.CD+
                          health_expenditure_per_cap+
                          gini_SI.POV.GINI+
                          unemployment_SL.UEM.TOTL.NE.ZS+
-                         unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
+                         unemployment_youth_SL.UEM.1524.NE.ZS, 
+                       data = countries)
+
 summary(model_volatility)
+# significant: consumer_price, net_nat_income_NY.ADJ.NNTY.CD
+# household_expenditure_ppp, gdp_percapita_NY.GDP.PCAP.PP.CD, 
+# gdp_deflator_NY.GDP.DEFL.ZS, life_expectancy_SP.DYN.LE00.IN 
+# unemployment_SL.UEM.TOTL.NE.ZS, unemployment_youth_SL.UEM.1524.NE.ZS
+
+#### CHECK BECAUSE CORRELATION HAS BEEN UPDATED ####
+
+#household_expenditure_GDP WITH net_trade_goods_service_BN.GSR.GNFS.CD: (-0.7357246)
+#household_expenditure_GDP WITH net_trade_goods_BN.GSR.MRCH.CD: (-0.7372171)
+#household_expenditure_GDP WITH current_account_USD_BN.CAB.XOKA.CD: (-0.7065403)
 
 #also use variables with high correlation as response
-model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ consumer_price+inflation+inflation_deflator+
+model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ inflation+
+                         inflation_deflator+
+                         consumer_price+
+                         net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
                          net_nat_income_NY.ADJ.NNTY.CD+
                          household_expenditure_GDP+
                          household_expenditure_per_capita+
                          household_expenditure_ppp+
-                         gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                         gdp_percapita_NY.GDP.PCAP.PP.CD+ 
                          gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                         gdp_deflator_NY.GDP.DEFL.ZS+       
+                         gdp_deflator_NY.GDP.DEFL.ZS+   
                          life_expectancy_SP.DYN.LE00.IN+
                          health_expenditure_SH.XPD.CHEX.PP.CD+
                          health_expenditure_per_cap+
                          gini_SI.POV.GINI+
                          unemployment_SL.UEM.TOTL.NE.ZS+
-                         unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
+                         unemployment_youth_SL.UEM.1524.NE.ZS, 
+                       data = countries)
 
 summary(model_netservice)
 
 
-model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ consumer_price+inflation+inflation_deflator+
+model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ inflation+
+                       inflation_deflator+
+                       consumer_price+
+                       net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
                        net_nat_income_NY.ADJ.NNTY.CD+
                        household_expenditure_GDP+
                        household_expenditure_per_capita+
                        household_expenditure_ppp+
-                       gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                       gdp_percapita_NY.GDP.PCAP.PP.CD+ 
                        gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                       gdp_deflator_NY.GDP.DEFL.ZS+       
+                       gdp_deflator_NY.GDP.DEFL.ZS+   
                        life_expectancy_SP.DYN.LE00.IN+
                        health_expenditure_SH.XPD.CHEX.PP.CD+
                        health_expenditure_per_cap+
                        gini_SI.POV.GINI+
                        unemployment_SL.UEM.TOTL.NE.ZS+
-                       unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
+                       unemployment_youth_SL.UEM.1524.NE.ZS, 
+                     data = countries)
 
 summary(model_netgoods)
 
@@ -651,8 +734,7 @@ model_act <- lm(cbind(net_trade_goods_service_BN.GSR.GNFS.CD, net_trade_goods_BN
 
 summary(model_act)
 
-##########
-#store predictors that were significant across all the models
+# store predictors that were significant across all the models
 
 # Store the models in a list
 models <- list(model1 = model_cost, model2 = model_volatility, model3 = model_netservice, model4 = model_netgoods, 
@@ -693,9 +775,76 @@ print(common_significant_predictors)
 #" gdp_percapita_NY.GDP.PCAP.PP.CD"      "gdp_deflator_NY.GDP.DEFL.ZS"         
 # "unemployment_SL.UEM.TOTL.NE.ZS"       "unemployment_youth_SL.UEM.1524.NE.ZS"
 
+#### MIXED-EFFECT MODELS ####
 
-#################
-#######rough
+# Creating dataset for regression modeling 
+
+# Constructing mixed effect model for supply chain volatility
+mixed_model_volatility <- lmer(volatility_variable ~ inflation+
+                                 inflation_deflator+
+                                 consumer_price+
+                                 net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                                 net_nat_income_NY.ADJ.NNTY.CD+
+                                 household_expenditure_GDP+
+                                 household_expenditure_per_capita+
+                                 household_expenditure_ppp+
+                                 gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                                 gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                                 gdp_deflator_NY.GDP.DEFL.ZS+   
+                                 life_expectancy_SP.DYN.LE00.IN+
+                                 health_expenditure_SH.XPD.CHEX.PP.CD+
+                                 health_expenditure_per_cap+
+                                 gini_SI.POV.GINI+
+                                 unemployment_SL.UEM.TOTL.NE.ZS+
+                                 unemployment_youth_SL.UEM.1524.NE.ZS+
+                                 (1|country_code), 
+                               data = countries)
+
+summary(mixed_model_volatility)
+# household_expenditure_ppp, gdp_percapita_NY.GDP.PCAP.PP.CD is SIGNIFICANT, 
+# consumer_price is kinda close 
+
+# Testing assumptions for mixed effect volatility model 
+plot(mixed_model_volatility)
+# some uneven spread in residuals 
+
+qqnorm(resid(mixed_model_volatility))
+
+qqline(resid(mixed_model_volatility))
+# some concerns of normality w/ qq line 
+
+# Constructing mixed effect model for supply chain costs
+mixed_model_cost<- lmer(cost_variable ~ inflation+
+                          inflation_deflator+
+                          consumer_price+
+                          net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                          net_nat_income_NY.ADJ.NNTY.CD+
+                          household_expenditure_GDP+
+                          household_expenditure_per_capita+
+                          household_expenditure_ppp+
+                          gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                          gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                          gdp_deflator_NY.GDP.DEFL.ZS+   
+                          life_expectancy_SP.DYN.LE00.IN+
+                          health_expenditure_SH.XPD.CHEX.PP.CD+
+                          health_expenditure_per_cap+
+                          gini_SI.POV.GINI+
+                          unemployment_SL.UEM.TOTL.NE.ZS+
+                          unemployment_youth_SL.UEM.1524.NE.ZS+
+                          (1|country_code), 
+                        data = countries)
+
+summary(mixed_model_cost)
+# gdp_percapita_NY.GDP.PCAP.PP.CD is closest but nothing is statistically significant
+# second is household_expenditure_ppp, health_expenditure_per_cap health_expenditure_SH.XPD.CHEX.PP.CD 
+
+# Testing assumptions for mixed effect cost model 
+plot(mixed_model_cost)
+qqnorm(resid(mixed_model_cost))
+qqline(resid(mixed_model_cost))
+
+#### GG PLOTS ####
+
 # Plotting the relationship of net_nat_income and supply chain volatility
 ggplot(countries, aes(x = year)) +
   geom_line(aes(y = consumer_price, color = "Net nat")) + # Line for Inflation
@@ -757,189 +906,5 @@ ggplot(countries, aes(x = year)) +
     strip.text = element_text(size = 10), # Customize facet labels
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
   ) 
-
-#### Regression Modelling ####
-
-# Creating dataset for regression modeling 
-lasso_data <- countries %>%
-  dplyr::select(
-    inflation, 
-    inflation_deflator,
-    consumer_price,
-    net_nat_income_percapita_NY.ADJ.NNTY.PC.CD,
-    net_nat_income_NY.ADJ.NNTY.CD,
-    household_expenditure_GDP,
-    household_expenditure_per_capita,
-    household_expenditure_ppp,
-    gdp_percapita_NY.GDP.PCAP.PP.CD,      
-    gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
-    gdp_deflator_NY.GDP.DEFL.ZS,         
-    life_expectancy_SP.DYN.LE00.IN,
-    health_expenditure_SH.XPD.CHEX.PP.CD,
-    health_expenditure_per_cap,
-    gini_SI.POV.GINI,
-    unemployment_SL.UEM.TOTL.NE.ZS, 
-    unemployment_youth_SL.UEM.1524.NE.ZS, 
-    lpi_LP.LPI.INFR.XQ
-  )
-# NOTE: selecting predictor variables which will be scaled 
-
-# Selecting numeric variables for scaling 
-numeric_vars <- lasso_data %>%
-  dplyr::select(where(is.numeric)) %>%
-  names()
-
-# Scaling predictor variables 
-lasso_data[numeric_vars] <- scale(lasso_data[numeric_vars])
-
-# Adding in country code, factoring it 
-lasso_data$country_code <- factor(countries$country_code)
-
-# Adding in observation year
-lasso_data$year <- countries$year
-
-# Adding in composite cost variable 
-lasso_data$cost_variable <- countries$cost_variable
-
-#  Adding in composite volatility variable 
-lasso_data$volatility_variable <- countries$volatility_variable
-
-library(lme4)
-
-# Constructing mixed effect model for supply chain volatility
-mixed_model_volatility <- lmer(volatility_variable ~ inflation+
-                                 inflation_deflator+
-                                 consumer_price+
-                                 net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                                 net_nat_income_NY.ADJ.NNTY.CD+
-                                 household_expenditure_GDP+
-                                 household_expenditure_per_capita+
-                                 household_expenditure_ppp+
-                                 gdp_percapita_NY.GDP.PCAP.PP.CD+ 
-                                 gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                                 gdp_deflator_NY.GDP.DEFL.ZS+   
-                                 life_expectancy_SP.DYN.LE00.IN+
-                                 health_expenditure_SH.XPD.CHEX.PP.CD+
-                                 health_expenditure_per_cap+
-                                 gini_SI.POV.GINI+
-                                 unemployment_SL.UEM.TOTL.NE.ZS+
-                                 unemployment_youth_SL.UEM.1524.NE.ZS+
-                                 lpi_LP.LPI.INFR.XQ+
-                                 (1|country_code), 
-                               data = lasso_data
-)
-
-summary(mixed_model_volatility)
-# household_expenditure_ppp is SIGNIFICANT, gdp_percapita_NY.GDP.PCAP.PP.CD is close, 
-# net_nat_income_NY.ADJ.NNTY.CD, lpi_LP.LPI.INFR.XQ, & consumer_price also close 
-
-# Testing assumptions for mixed effect volatility model 
-plot(mixed_model_volatility)
-# some uneven spread in residuals 
-
-qqnorm(resid(mixed_model_volatility))
-
-qqline(resid(mixed_model_volatility))
-# some concerns of normality w/ qq line 
-
-# Constructing mixed effect model for supply chain costs
-mixed_model_cost<- lmer(cost_variable ~ inflation+
-                          inflation_deflator+
-                          consumer_price+
-                          net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                          net_nat_income_NY.ADJ.NNTY.CD+
-                          household_expenditure_GDP+
-                          household_expenditure_per_capita+
-                          household_expenditure_ppp+
-                          gdp_percapita_NY.GDP.PCAP.PP.CD+ 
-                          gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                          gdp_deflator_NY.GDP.DEFL.ZS+   
-                          life_expectancy_SP.DYN.LE00.IN+
-                          health_expenditure_SH.XPD.CHEX.PP.CD+
-                          health_expenditure_per_cap+
-                          gini_SI.POV.GINI+
-                          unemployment_SL.UEM.TOTL.NE.ZS+
-                          unemployment_youth_SL.UEM.1524.NE.ZS+
-                          lpi_LP.LPI.INFR.XQ+
-                          (1|country_code), 
-                        data = lasso_data
-)
-
-summary(mixed_model_cost)
-# gdp_percapita_NY.GDP.PCAP.PP.CD is closest but nothing is statistically significant
-
-# Testing assumptions for mixed effect cost model 
-plot(mixed_model_cost)
-qqnorm(resid(mixed_model_cost))
-qqline(resid(mixed_model_cost))
-
-# Regression model for cost 
-regression_model_cost <- lm(cost_variable ~ inflation+
-                              inflation_deflator+
-                              consumer_price+
-                              net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                              net_nat_income_NY.ADJ.NNTY.CD+
-                              household_expenditure_GDP+
-                              household_expenditure_per_capita+
-                              household_expenditure_ppp+
-                              gdp_percapita_NY.GDP.PCAP.PP.CD+ 
-                              gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                              gdp_deflator_NY.GDP.DEFL.ZS+   
-                              life_expectancy_SP.DYN.LE00.IN+
-                              health_expenditure_SH.XPD.CHEX.PP.CD+
-                              health_expenditure_per_cap+
-                              gini_SI.POV.GINI+
-                              unemployment_SL.UEM.TOTL.NE.ZS+
-                              unemployment_youth_SL.UEM.1524.NE.ZS+
-                              lpi_LP.LPI.INFR.XQ, 
-                            data = lasso_data
-)
-
-summary(regression_model_cost)
-
-model_cost <- lm(cost_variable ~ consumer_price+
-                   inflation+
-                   inflation_deflator+
-                   net_nat_income_NY.ADJ.NNTY.CD+
-                   net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                   household_expenditure_GDP+
-                   household_expenditure_per_capita+
-                   household_expenditure_ppp+
-                   gdp_percapita_NY.GDP.PCAP.PP.CD+    
-                   gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                   gdp_deflator_NY.GDP.DEFL.ZS+       
-                   life_expectancy_SP.DYN.LE00.IN+
-                   health_expenditure_SH.XPD.CHEX.PP.CD+
-                   health_expenditure_per_cap+
-                   gini_SI.POV.GINI+
-                   unemployment_SL.UEM.TOTL.NE.ZS+
-                   unemployment_youth_SL.UEM.1524.NE.ZS+
-                   lpi_LP.LPI.INFR.XQ, 
-                 data = countries)
-
-summary(model_cost)
-
-regression_model_volatility <- lm(volatility_variable ~ inflation+
-                                    inflation_deflator+
-                                    consumer_price+
-                                    net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                                    net_nat_income_NY.ADJ.NNTY.CD+
-                                    household_expenditure_GDP+
-                                    household_expenditure_per_capita+
-                                    household_expenditure_ppp+
-                                    gdp_percapita_NY.GDP.PCAP.PP.CD+ 
-                                    gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                                    gdp_deflator_NY.GDP.DEFL.ZS+   
-                                    life_expectancy_SP.DYN.LE00.IN+
-                                    health_expenditure_SH.XPD.CHEX.PP.CD+
-                                    health_expenditure_per_cap+
-                                    gini_SI.POV.GINI+
-                                    unemployment_SL.UEM.TOTL.NE.ZS+
-                                    unemployment_youth_SL.UEM.1524.NE.ZS+
-                                    lpi_LP.LPI.INFR.XQ, 
-                                  data = lasso_data
-)
-
-summary(regression_model_volatility)
 
 
