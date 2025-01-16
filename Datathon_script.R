@@ -488,6 +488,7 @@ gdp_countries <- c("United States", "China", "Germany", "Japan", "India",
                    "Russian Federation", "Mexico", "Australia", "Korea, Rep.", 
                    "Spain", "Indonesia", "Netherlands", "Turkiye", 
                    "Saudi Arabia", "Switzerland") 
+
 countries <- subset(completed_data, country_name %in% gdp_countries)
 
 #### CORRELATION INSIGHTS ####
@@ -507,6 +508,8 @@ ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
 
 #### SCALING PREDICTOR VARIABLES ####
 
+year_data <- countries$year
+  
 # selecting numeric variables 
 numeric_vars <- countries %>%
   dplyr::select(where(is.numeric)) %>%
@@ -519,8 +522,8 @@ countries[numeric_vars] <- scale(countries[numeric_vars])
 countries$country_code <- factor(countries$country_code)
 
 # adding observation year 
-countries$year <- countries$year
-
+countries$year <-year_data
+ 
 # adding composite cost index 
 countries$cost_variable <- countries$cost_variable
 
@@ -835,8 +838,15 @@ countries_tableau <- countries_tableau %>%
     is_global_south = country_name %in% south_countries
   )
 
+countries_tableau_long <- countries_tableau %>%
+  pivot_longer(
+    cols = -c(country_name, country_code, year, time_code), # Columns to keep as is
+    names_to = "Indicator",  # Column to store the variable names
+    values_to = "Value"      # Column to store the values
+  )
+
 # writing as .csv 
-write.csv(countries_tableau, "countries_tableau.csv", row.names = FALSE)
+write.csv(countries_tableau_long, "countries_tableau.csv", row.names = FALSE)
 
 #### MIXED-EFFECT MODELS ####
 
