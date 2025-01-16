@@ -562,41 +562,96 @@ corrplot(cor_matrix_composite, method = "color", is.corr = TRUE,
 
 #####################
 #lm to test relationship between cost of living indicators and composite supply chain costs/volatility
-model_cost <- lm(cost_variable ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                   net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
-                   household_expenditure_ppp, data = countries)
+model_cost <- lm(cost_variable ~ consumer_price+inflation+inflation_deflator+
+  net_nat_income_NY.ADJ.NNTY.CD+
+  household_expenditure_GDP+
+  household_expenditure_per_capita+
+  household_expenditure_ppp+
+  gdp_percapita_NY.GDP.PCAP.PP.CD+    
+  gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+  gdp_deflator_NY.GDP.DEFL.ZS+       
+  life_expectancy_SP.DYN.LE00.IN+
+  health_expenditure_SH.XPD.CHEX.PP.CD+
+  health_expenditure_per_cap+
+  gini_SI.POV.GINI+
+  unemployment_SL.UEM.TOTL.NE.ZS+
+  unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
+
 summary(model_cost)
 
-model_volatility <- lm(volatility_variable ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
-                         household_expenditure_ppp, data = countries)
+model_volatility <- lm(volatility_variable ~ consumer_price+inflation+inflation_deflator+
+                         net_nat_income_NY.ADJ.NNTY.CD+
+                         household_expenditure_GDP+
+                         household_expenditure_per_capita+
+                         household_expenditure_ppp+
+                         gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                         gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                         gdp_deflator_NY.GDP.DEFL.ZS+       
+                         life_expectancy_SP.DYN.LE00.IN+
+                         health_expenditure_SH.XPD.CHEX.PP.CD+
+                         health_expenditure_per_cap+
+                         gini_SI.POV.GINI+
+                         unemployment_SL.UEM.TOTL.NE.ZS+
+                         unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
 summary(model_volatility)
 
 #also use variables with high correlation as response
-model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
-                         household_expenditure_ppp, data = countries)
+model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ consumer_price+inflation+inflation_deflator+
+                         net_nat_income_NY.ADJ.NNTY.CD+
+                         household_expenditure_GDP+
+                         household_expenditure_per_capita+
+                         household_expenditure_ppp+
+                         gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                         gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                         gdp_deflator_NY.GDP.DEFL.ZS+       
+                         life_expectancy_SP.DYN.LE00.IN+
+                         health_expenditure_SH.XPD.CHEX.PP.CD+
+                         health_expenditure_per_cap+
+                         gini_SI.POV.GINI+
+                         unemployment_SL.UEM.TOTL.NE.ZS+
+                         unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
 
 summary(model_netservice)
 
 
-model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
-                         household_expenditure_ppp, data = countries)
+model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ consumer_price+inflation+inflation_deflator+
+                       net_nat_income_NY.ADJ.NNTY.CD+
+                       household_expenditure_GDP+
+                       household_expenditure_per_capita+
+                       household_expenditure_ppp+
+                       gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                       gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                       gdp_deflator_NY.GDP.DEFL.ZS+       
+                       life_expectancy_SP.DYN.LE00.IN+
+                       health_expenditure_SH.XPD.CHEX.PP.CD+
+                       health_expenditure_per_cap+
+                       gini_SI.POV.GINI+
+                       unemployment_SL.UEM.TOTL.NE.ZS+
+                       unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
 
 summary(model_netgoods)
 
 
 model_act <- lm(cbind(net_trade_goods_service_BN.GSR.GNFS.CD, net_trade_goods_BN.GSR.MRCH.CD, current_account_USD_BN.CAB.XOKA.CD)
-                ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
-                       net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
-                       household_expenditure_ppp, data = countries)
+                ~ consumer_price+inflation+inflation_deflator+
+                  net_nat_income_NY.ADJ.NNTY.CD+
+                  household_expenditure_GDP+
+                  household_expenditure_per_capita+
+                  household_expenditure_ppp+
+                  gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                  gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                  gdp_deflator_NY.GDP.DEFL.ZS+       
+                  life_expectancy_SP.DYN.LE00.IN+
+                  health_expenditure_SH.XPD.CHEX.PP.CD+
+                  health_expenditure_per_cap+
+                  gini_SI.POV.GINI+
+                  unemployment_SL.UEM.TOTL.NE.ZS+
+                  unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
 
 summary(model_act)
 
-
+##########
 #store predictors that were significant across all the models
-# Example models (replace with your actual models)
 
 # Store the models in a list
 models <- list(model1 = model_cost, model2 = model_volatility, model3 = model_netservice, model4 = model_netgoods, 
@@ -634,6 +689,7 @@ print(common_significant_predictors) #2 significant across all models
 
 
 
+#################
 #######rough
 # Plotting the relationship of net_nat_income and supply chain volatility
 ggplot(countries, aes(x = year)) +
