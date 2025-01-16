@@ -457,15 +457,31 @@ ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels if needed for readability
   )
 
+######SCALING DATA########
+numeric_vars <- countries %>%
+  dplyr::select(where(is.numeric)) %>%
+  names()
+
+countries[numeric_vars] <- scale(countries [numeric_vars])
+
+countries$country_code <- factor(countries$country_code)
+
+countries$year <- countries$year
+
+countries$cost_variable <- countries$cost_variable
+
+countries$volatility_variable <- countries$volatility_variable
+
+
 
 ## determine correlation between cost of living indicators and supply chain volatility ##
 #' Define groups of variables
 living_cost <- countries %>%
-  select(consumer_price,inflation, inflation_deflator, gini_SI.POV.GINI, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
+  dplyr::select(consumer_price,inflation, inflation_deflator, gini_SI.POV.GINI, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
          household_expenditure_GDP, household_expenditure_per_capita, household_expenditure_ppp)
 
 supply_chain <- countries %>%
-  select(# LPI 
+  dplyr::select(# LPI 
     lpi_LP.LPI.INFR.XQ, 
     # Freight Rate Indices
     transport_comm_export_TX.VAL.TRAN.ZS.WT, 
@@ -503,7 +519,7 @@ supply_chain <- countries %>%
     
     
 composite_supply_chain <- countries %>%
-  select(volatility_variable, cost_variable)
+  dplyr::select(volatility_variable, cost_variable)
 
 ###correlation of cost of living and  supply chain indicators
 #' Compute correlation matrix between group1 and group2
