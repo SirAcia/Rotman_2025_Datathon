@@ -273,7 +273,7 @@ imputed_data <- mice(
 
 completed_data <- complete(imputed_data, 1)  # Replace '1' with the index of the dataset you want
 
-#### PCA ANALYSIS ####
+#### PCA FOR CONPOSITE VARIABLE ####
 
 supply_chain_volatility <- completed_data %>%
   select(
@@ -441,8 +441,9 @@ gdp_countries <- c("United States", "China", "Germany", "Japan", "India",
                    "Saudi Arabia", "Switzerland") 
 countries <- subset(completed_data, country_name %in% gdp_countries)
 
-#############################
-## Correlation Insights ##
+##############################
+#### Correlation Insights ####
+##############################
 
 #Q1. What patterns emerge between cost-of-living increases and supply chain disruptions?
 
@@ -457,7 +458,7 @@ ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels if needed for readability
   )
 
-######SCALING DATA########
+#### SCALING DATA ####
 numeric_vars <- countries %>%
   dplyr::select(where(is.numeric)) %>%
   names()
@@ -756,4 +757,167 @@ ggplot(countries, aes(x = year)) +
     strip.text = element_text(size = 10), # Customize facet labels
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
   ) 
+
+#### Regression Modelling ####
+
+# Creating dataset for regression modeling 
+lasso_data <- countries %>%
+  select(
+    inflation, 
+    inflation_deflator,
+    consumer_price,
+    net_nat_income_percapita_NY.ADJ.NNTY.PC.CD,
+    net_nat_income_NY.ADJ.NNTY.CD,
+    household_expenditure_GDP,
+    household_expenditure_per_capita,
+    household_expenditure_ppp,
+    gdp_percapita_NY.GDP.PCAP.PP.CD,      
+    gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+    gdp_deflator_NY.GDP.DEFL.ZS,         
+    life_expectancy_SP.DYN.LE00.IN,
+    health_expenditure_SH.XPD.CHEX.PP.CD,
+    health_expenditure_per_cap,
+    gini_SI.POV.GINI,
+    unemployment_SL.UEM.TOTL.NE.ZS, 
+    unemployment_youth_SL.UEM.1524.NE.ZS, 
+    lpi_LP.LPI.INFR.XQ
+  )
+# NOTE: selecting predictor variables which will be scaled 
+
+# Selecting numeric variables for scaling 
+numeric_vars <- lasso_data %>%
+  select(where(is.numeric)) %>%
+  names()
+
+# Scaling predictor variables 
+lasso_data[numeric_vars] <- scale(lasso_data[numeric_vars])
+
+# Adding in country code, factoring it 
+lasso_data$country_code <- factor(countries$country_code)
+
+# Adding in observation year
+lasso_data$year <- countries$year
+
+# Adding in composite cost variable 
+lasso_data$cost_variable <- countries$cost_variable
+
+#  Adding in composite volatility variable 
+lasso_data$volatility_variable <- countries$volatility_variable
+
+library(lme4)
+
+# Constructing mixed effect model for supply chain volatility
+mixed_model_volatility <- lmer(volatility_variable ~ inflation+
+                                 inflation_deflator+
+                                 consumer_price+
+                                 net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                                 net_nat_income_NY.ADJ.NNTY.CD+
+                                 household_expenditure_GDP+
+                                 household_expenditure_per_capita+
+                                 household_expenditure_ppp+
+                                 gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                                 gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                                 gdp_deflator_NY.GDP.DEFL.ZS+   
+                                 life_expectancy_SP.DYN.LE00.IN+
+                                 health_expenditure_SH.XPD.CHEX.PP.CD+
+                                 health_expenditure_per_cap+
+                                 gini_SI.POV.GINI+
+                                 unemployment_SL.UEM.TOTL.NE.ZS+
+                                 unemployment_youth_SL.UEM.1524.NE.ZS+
+                                 lpi_LP.LPI.INFR.XQ+
+                                 (1|country_code), 
+                               data = lasso_data
+)
+
+summary(mixed_model_volatility)
+# household_expenditure_ppp is SIGNIFICANT, gdp_percapita_NY.GDP.PCAP.PP.CD is close, 
+# net_nat_income_NY.ADJ.NNTY.CD, lpi_LP.LPI.INFR.XQ, & consumer_price also close 
+
+# Testing assumptions for mixed effect volatility model 
+plot(mixed_model_volatility)
+# some uneven spread in residuals 
+
+qqnorm(resid(mixed_model_volatility))
+
+qqline(resid(mixed_model_volatility))
+# some concerns of normality w/ qq line 
+
+# Constructing mixed effect model for supply chain costs
+mixed_model_cost<- lmer(cost_variable ~ inflation+
+                          inflation_deflator+
+                          consumer_price+
+                          net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                          net_nat_income_NY.ADJ.NNTY.CD+
+                          household_expenditure_GDP+
+                          household_expenditure_per_capita+
+                          household_expenditure_ppp+
+                          gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                          gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                          gdp_deflator_NY.GDP.DEFL.ZS+   
+                          life_expectancy_SP.DYN.LE00.IN+
+                          health_expenditure_SH.XPD.CHEX.PP.CD+
+                          health_expenditure_per_cap+
+                          gini_SI.POV.GINI+
+                          unemployment_SL.UEM.TOTL.NE.ZS+
+                          unemployment_youth_SL.UEM.1524.NE.ZS+
+                          lpi_LP.LPI.INFR.XQ+
+                          (1|country_code), 
+                        data = lasso_data
+)
+
+summary(mixed_model_cost)
+# gdp_percapita_NY.GDP.PCAP.PP.CD is closest but nothing is statistically significant
+
+# Testing assumptions for mixed effect cost model 
+plot(mixed_model_cost)
+qqnorm(resid(mixed_model_cost))
+qqline(resid(mixed_model_cost))
+
+# Regression model for cost 
+regression_model_cost <- lm(cost_variable ~ inflation+
+                              inflation_deflator+
+                              consumer_price+
+                              net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                              net_nat_income_NY.ADJ.NNTY.CD+
+                              household_expenditure_GDP+
+                              household_expenditure_per_capita+
+                              household_expenditure_ppp+
+                              gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                              gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                              gdp_deflator_NY.GDP.DEFL.ZS+   
+                              life_expectancy_SP.DYN.LE00.IN+
+                              health_expenditure_SH.XPD.CHEX.PP.CD+
+                              health_expenditure_per_cap+
+                              gini_SI.POV.GINI+
+                              unemployment_SL.UEM.TOTL.NE.ZS+
+                              unemployment_youth_SL.UEM.1524.NE.ZS+
+                              lpi_LP.LPI.INFR.XQ, 
+                            data = lasso_data
+)
+
+summary(regression_model_cost)
+
+regression_model_volatility <- lm(volatility_variable ~ inflation+
+                                    inflation_deflator+
+                                    consumer_price+
+                                    net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                                    net_nat_income_NY.ADJ.NNTY.CD+
+                                    household_expenditure_GDP+
+                                    household_expenditure_per_capita+
+                                    household_expenditure_ppp+
+                                    gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                                    gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                                    gdp_deflator_NY.GDP.DEFL.ZS+   
+                                    life_expectancy_SP.DYN.LE00.IN+
+                                    health_expenditure_SH.XPD.CHEX.PP.CD+
+                                    health_expenditure_per_cap+
+                                    gini_SI.POV.GINI+
+                                    unemployment_SL.UEM.TOTL.NE.ZS+
+                                    unemployment_youth_SL.UEM.1524.NE.ZS+
+                                    lpi_LP.LPI.INFR.XQ, 
+                                  data = lasso_data
+)
+
+summary(regression_model_volatility)
+
 
