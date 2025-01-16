@@ -59,6 +59,8 @@ for (col in colnames(data)) {
 # Renaming the relevant columns
 selected_data <- data %>%
   rename(
+    #consumer price 
+    consumer_price = "Consumer price index (2010 = 100) [FP.CPI.TOTL]",
     # Country Identifiers 
     country_name = "Country Name",
     country_code = "Country Code",
@@ -156,6 +158,7 @@ selected_data <- selected_data %>%
          country_code, 
          year, 
          time_code, 
+         consumer_price,
          inflation,
          inflation_deflator,
          net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, 
@@ -254,7 +257,6 @@ nonmiss_data$lpi_LP.LPI.INFR.XQ <- selected_data$lpi_LP.LPI.INFR.XQ
 
 dim(nonmiss_data)
 
-
 #### DATA IMPUTATION ####
 
 imputed_data <- mice(
@@ -267,72 +269,6 @@ imputed_data <- mice(
 )
 
 completed_data <- complete(imputed_data, 1)  # Replace '1' with the index of the dataset you want
-
-#### Subsetting for different Countries/Regions ####
-
-#G7
-g7_countries <- c("Canada","France", "Germany", "Italy", "Japan", "United Kingdom", "United States")
-g7 <- subset(completed_data, country_name %in% g7_countries)
-
-
-#OECD
-oecd_countries <- c("Australia", "Austria", "Belgium", "Canada", "Chile", "Colombia", "Costa Rica", "Czech Republic",
-                    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland",
-                    "Israel", "Italy", "Japan", "Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "Netherlands",
-                    "New Zealand", "Norway", "Poland", "Portugal", "Slovak Republic", "Slovenia", "Spain", "Sweden", 
-                    "Switzerland", "Turkey", "United Kingdom", "United States")
-oecd <- subset(completed_data, country_name %in% oecd_countries)
-
-
-# Global South Countries
-south_countries <- c(
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Anguilla", "Antigua and Barbuda",
-  "Argentina", "Armenia", "Aruba", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
-  "Belarus", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana",
-  "Brazil", "Brunei Darussalam", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon",
-  "Cape Verde", "Central African Republic", "Chad", "Channel Islands", "Chile", "China",
-  "Colombia", "Comoros", "Congo", "Costa Rica", "Côte d'Ivoire", "Croatia", "Cuba", "Cyprus",
-  "Czech Republic", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
-  "Equatorial Guinea", "Eritrea", "Ethiopia", "Fiji", "French Guiana", "French Polynesia", "Gabon",
-  "Gambia", "Georgia", "Ghana", "Grenada", "Guadeloupe", "Guam", "Guatemala", "Guinea", "Guinea-Bissau",
-  "Guyana", "Haiti", "Honduras", "Hong Kong", "India", "Indonesia", "Iran", "Iraq", "Jamaica", "Jordan",
-  "Kazakhstan", "Kenya", "Kiribati", "Korea, Democratic People's Republic of", "Kuwait", "Kyrgyzstan",
-  "Lao People's Democratic Republic", "Lebanon", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi",
-  "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Martinique", "Mauritania", "Mauritius",
-  "Mayotte", "Mexico", "Micronesia, Federated States of", "Mongolia", "Montenegro", "Morocco", "Mozambique",
-  "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands Antilles", "New Caledonia", "Nicaragua", "Niger",
-  "Nigeria", "Oman", "Pakistan", "Palau", "Palestinian Territory, Occupied", "Panama", "Papua New Guinea",
-  "Paraguay", "Peru", "Philippines", "Puerto Rico", "Qatar", "Republic of Moldova", "Réunion", "Romania",
-  "Russian Federation", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
-  "Samoa", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone",
-  "Singapore", "Slovakia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Sri Lanka", "Sudan",
-  "Suriname", "Swaziland", "Syrian Arab Republic", "Taiwan", "Tajikistan", "Tanzania", "Thailand",
-  "The former Yugoslav Republic of Macedonia", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago",
-  "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "Uruguay",
-  "Uzbekistan", "Vanuatu", "Venezuela", "Viet Nam", "Virgin Islands", "Western Sahara", "Yemen", "Zambia",
-  "Zimbabwe"
-)
-
-global.south <- subset(completed_data, country_name %in% south_countries)
-
-# Global North Countries
-north_countries <- c(
-  "Australia", "Austria", "Belgium", "Canada", "Denmark", "Estonia", "Finland", "France", "Germany",
-  "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "Korea, Republic of", "Latvia",
-  "Lithuania", "Liechtenstein", "Luxembourg", "Monaco", "Netherlands", "New Zealand", "Norway", "Poland",
-  "Portugal", "San Marino", "Slovenia", "Spain", "Sweden", "Switzerland", "United Kingdom", "United States"
-)
-
-global.north <- subset(completed_data, country_name %in% north_countries)
-
-
-#Top 20 highest gdp
-gdp_countries <- c("United States", "China", "Germany", "Japan", "India", 
-                   "United Kingdom", "France", "Italy", "Brazil", "Canada", 
-                   "Russian Federation", "Mexico", "Australia", "Korea, Rep.", 
-                   "Spain", "Indonesia", "Netherlands", "Turkiye", 
-                   "Saudi Arabia", "Switzerland") 
-countries <- subset(completed_data, country_name %in% gdp_countries)
 
 #### PCA ANALYSIS ####
 
@@ -436,8 +372,71 @@ explained_variance_ratio_cost[1]
 
 completed_data$cost_variable <- (cost_variable)^2
 
-test <- completed_data %>%
-  select(country_name, volatility_variable, cost_variable)
+#### Subsetting for different Countries/Regions ####
+
+#G7
+g7_countries <- c("Canada","France", "Germany", "Italy", "Japan", "United Kingdom", "United States")
+g7 <- subset(completed_data, country_name %in% g7_countries)
+
+
+#OECD
+oecd_countries <- c("Australia", "Austria", "Belgium", "Canada", "Chile", "Colombia", "Costa Rica", "Czech Republic",
+                    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland",
+                    "Israel", "Italy", "Japan", "Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "Netherlands",
+                    "New Zealand", "Norway", "Poland", "Portugal", "Slovak Republic", "Slovenia", "Spain", "Sweden", 
+                    "Switzerland", "Turkey", "United Kingdom", "United States")
+oecd <- subset(completed_data, country_name %in% oecd_countries)
+
+
+# Global South Countries
+south_countries <- c(
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Anguilla", "Antigua and Barbuda",
+  "Argentina", "Armenia", "Aruba", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
+  "Belarus", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana",
+  "Brazil", "Brunei Darussalam", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon",
+  "Cape Verde", "Central African Republic", "Chad", "Channel Islands", "Chile", "China",
+  "Colombia", "Comoros", "Congo", "Costa Rica", "Côte d'Ivoire", "Croatia", "Cuba", "Cyprus",
+  "Czech Republic", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+  "Equatorial Guinea", "Eritrea", "Ethiopia", "Fiji", "French Guiana", "French Polynesia", "Gabon",
+  "Gambia", "Georgia", "Ghana", "Grenada", "Guadeloupe", "Guam", "Guatemala", "Guinea", "Guinea-Bissau",
+  "Guyana", "Haiti", "Honduras", "Hong Kong", "India", "Indonesia", "Iran", "Iraq", "Jamaica", "Jordan",
+  "Kazakhstan", "Kenya", "Kiribati", "Korea, Democratic People's Republic of", "Kuwait", "Kyrgyzstan",
+  "Lao People's Democratic Republic", "Lebanon", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi",
+  "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Martinique", "Mauritania", "Mauritius",
+  "Mayotte", "Mexico", "Micronesia, Federated States of", "Mongolia", "Montenegro", "Morocco", "Mozambique",
+  "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands Antilles", "New Caledonia", "Nicaragua", "Niger",
+  "Nigeria", "Oman", "Pakistan", "Palau", "Palestinian Territory, Occupied", "Panama", "Papua New Guinea",
+  "Paraguay", "Peru", "Philippines", "Puerto Rico", "Qatar", "Republic of Moldova", "Réunion", "Romania",
+  "Russian Federation", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
+  "Samoa", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone",
+  "Singapore", "Slovakia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Sri Lanka", "Sudan",
+  "Suriname", "Swaziland", "Syrian Arab Republic", "Taiwan", "Tajikistan", "Tanzania", "Thailand",
+  "The former Yugoslav Republic of Macedonia", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago",
+  "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "Uruguay",
+  "Uzbekistan", "Vanuatu", "Venezuela", "Viet Nam", "Virgin Islands", "Western Sahara", "Yemen", "Zambia",
+  "Zimbabwe"
+)
+
+global.south <- subset(completed_data, country_name %in% south_countries)
+
+# Global North Countries
+north_countries <- c(
+  "Australia", "Austria", "Belgium", "Canada", "Denmark", "Estonia", "Finland", "France", "Germany",
+  "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "Korea, Republic of", "Latvia",
+  "Lithuania", "Liechtenstein", "Luxembourg", "Monaco", "Netherlands", "New Zealand", "Norway", "Poland",
+  "Portugal", "San Marino", "Slovenia", "Spain", "Sweden", "Switzerland", "United Kingdom", "United States"
+)
+
+global.north <- subset(completed_data, country_name %in% north_countries)
+
+
+#Top 20 highest gdp
+gdp_countries <- c("United States", "China", "Germany", "Japan", "India", 
+                   "United Kingdom", "France", "Italy", "Brazil", "Canada", 
+                   "Russian Federation", "Mexico", "Australia", "Korea, Rep.", 
+                   "Spain", "Indonesia", "Netherlands", "Turkiye", 
+                   "Saudi Arabia", "Switzerland") 
+countries <- subset(completed_data, country_name %in% gdp_countries)
 
 #############################
 ## Correlation Insights ##
@@ -459,30 +458,181 @@ ggplot(countries, aes(x = year, y = inflation, color = country_name)) +
 ## determine correlation between cost of living indicators and supply chain volatility ##
 #' Define groups of variables
 living_cost <- countries %>%
-  select(inflation, inflation_deflator, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
+  select(consumer_price,inflation, inflation_deflator, gini_SI.POV.GINI, net_nat_income_percapita_NY.ADJ.NNTY.PC.CD, net_nat_income_NY.ADJ.NNTY.CD, 
          household_expenditure_GDP, household_expenditure_per_capita, household_expenditure_ppp)
 
 supply_chain <- countries %>%
+  select(# LPI 
+    lpi_LP.LPI.INFR.XQ, 
+    # Freight Rate Indices
+    transport_comm_export_TX.VAL.TRAN.ZS.WT, 
+    transport_comm_import_TM.VAL.TRAN.ZS.WT, 
+    transport_export_bop_BX.GSR.TRAN.ZS, 
+    transport_import_bop_BM.GSR.TRAN.ZS, 
+    # BOTH PPI and supply chain variables 
+    manufacturing_GDP_NV.IND.MANF.ZS, 
+    manufacturing_growth_NV.IND.MANF.KD.ZG, 
+    manufacturer_exports_TX.VAL.MANF.ZS.UN, 
+    manufacturer_imports_TM.VAL.MANF.ZS.UN, 
+    # Producer Price Index (PPI) 
+    exports_GDP_NE.EXP.GNFS.ZS, 
+    exports_growth_NE.EXP.GNFS.KD.ZG, 
+    import_unit_index_TM.UVI.MRCH.XD.WD, 
+    import_value_index_TM.VAL.MRCH.XD.WD, 
+    import_volume_index_TM.QTY.MRCH.XD.WD, 
+    oil_rents_NY.GDP.PETR.RT.ZS, 
+    ore_exports_TX.VAL.MMTL.ZS.UN, 
+    ore_imports_TM.VAL.MMTL.ZS.UN, 
+    # Supply Chain Volatility Index 
+    net_trade_goods_service_BN.GSR.GNFS.CD, 
+    net_trade_goods_BN.GSR.MRCH.CD, 
+    trade_GDP_NE.TRD.GNFS.ZS, 
+    trade_services_BG.GSR.NFSV.GD.ZS, 
+    mechandise_exports_TX.VAL.MRCH.CD.WT, 
+    mechandise_imports_TM.VAL.MRCH.CD.WT, 
+    mechandise_trade_TG.VAL.TOTL.GD.ZS, 
+    exports_GDP_NE.EXP.GNFS.ZS, 
+    exports_growth_NE.EXP.GNFS.KD.ZG, 
+    imports_GDP_NE.IMP.GNFS.ZS, 
+    imports_growth_NE.IMP.GNFS.KD.ZG, 
+    current_account_GDP_BN.CAB.XOKA.GD.ZS, 
+    current_account_USD_BN.CAB.XOKA.CD)
+    
+    
+composite_supply_chain <- countries %>%
   select(volatility_variable, cost_variable)
-         
 
+###correlation of cost of living and  supply chain indicators
 #' Compute correlation matrix between group1 and group2
-cor_matrix <- cor(living_cost, supply_chain, use = "pairwise.complete.obs")
+cor_matrix <- cor(living_cost, supply_chain,  method = "spearman")
 
-#' Plot the correlation heatmap
+#' correlation heatmap of composite 
 corrplot(cor_matrix, method = "color", is.corr = TRUE, 
          tl.cex = 0.8, number.cex = 0.7,
-         title = "Correlation of Cost of Living indicators with Supply Chain Volatility and Costs",
+         title = "Correlation of Cost of Living indicators with \n Supply Chain Indicators",
+         mar = c(0, 0, 1, 0))
+#store as df
+cor_df <- as.data.frame(as.table(cor_matrix))
+
+# Rename the columns for clarity
+colnames(cor_df) <- c("Variable1", "Variable2", "Correlation")
+
+# Filter for high correlation pairs (absolute correlation > 0.7)
+high_cor_pairs <- subset(cor_df, abs(Correlation) > 0.7)
+
+# Remove duplicate pairs (keeping one of each pair)
+high_cor_pairs <- high_cor_pairs[!duplicated(t(apply(high_cor_pairs, 1, sort))), ]
+
+# Output the high correlation pairs
+print(high_cor_pairs)
+
+#household_expenditure_ppp  and mechandise_exports_TX.VAL.MRCH.CD.WT (0.7027965)
+#net_nat_income_NY.ADJ.NNTY.CD mechandise_imports_TM.VAL.MRCH.CD.WT   0.7663589
+#household_expenditure_ppp mechandise_imports_TM.VAL.MRCH.CD.WT   0.8729368
+         
+###correlation of cost of living and composite supply chain indicators
+#' Compute correlation matrix between group1 and group2
+cor_matrix_composite <- cor(living_cost, composite_supply_chain,  method = "spearman")
+
+#' correlation heatmap of composite 
+corrplot(cor_matrix_composite, method = "color", is.corr = TRUE, 
+         tl.cex = 0.8, number.cex = 0.7,
+         title = "Correlation of Cost of Living indicators with \n Composite Supply Chain Volatility and Costs Indicators",
          mar = c(0, 0, 1, 0))
 
+#####################
+#lm to test relationship between cost of living indicators and composite supply chain costs/volatility
+model_cost <- lm(cost_variable ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                   net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
+                   household_expenditure_ppp, data = countries)
+summary(model_cost)
+
+model_volatility <- lm(volatility_variable ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
+                         household_expenditure_ppp, data = countries)
+summary(model_volatility)
+
+#also use variables with high correlation as response
+model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
+                         household_expenditure_ppp, data = countries)
+
+summary(model_netservice)
 
 
+model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                         net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
+                         household_expenditure_ppp, data = countries)
+
+summary(model_netgoods)
 
 
+model_act <- lm(cbind(net_trade_goods_service_BN.GSR.GNFS.CD, net_trade_goods_BN.GSR.MRCH.CD, current_account_USD_BN.CAB.XOKA.CD)
+                ~ consumer_price+inflation+inflation_deflator+net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                       net_nat_income_NY.ADJ.NNTY.CD+household_expenditure_GDP+household_expenditure_per_capita+
+                       household_expenditure_ppp, data = countries)
 
+summary(model_act)
 
+# Plotting the relationship of net_nat_income and supply chain volatility
+ggplot(countries, aes(x = year)) +
+  geom_line(aes(y = consumer_price, color = "Net nat")) + # Line for Inflation
+  geom_line(aes(y = mechandise_exports_TX.VAL.MRCH.CD.WT, color = "Supply Chain Volatility")) + # Line for Supply Chain Indicator
+  scale_y_continuous(
+    name = "Net nat",
+    sec.axis = sec_axis(~., name = "Supply Chain Volatility")
+  ) +
+  labs(title = "net_nat_income vs. Supply Chain Volatility Over Years", x = "Year") +
+  scale_color_manual(values = c("Net nat" = "blue", "Supply Chain Volatility" = "red")) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_text(color = "blue"),
+    axis.title.y.right = element_text(color = "red")
+  ) + 
+  facet_wrap(~ country_name, scales = "free_y") + # Creates a separate plot for each country
+  theme(
+    strip.text = element_text(size = 10), # Customize facet labels
+    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
+  ) 
 
+# Plotting the relationship of inflatoin and supply chain costs
+ggplot(countries, aes(x = year)) +
+  geom_line(aes(y = inflation, color = "Inflation Rate")) + # Line for Inflation
+  geom_line(aes(y = cost_variable, color = "Supply Chain Costs")) + # Line for Supply Chain Indicator
+  scale_y_continuous(
+    name = "Inflation Rate (%)",
+    sec.axis = sec_axis(~., name = "Supply Chain Costs")
+  ) +
+  labs(title = "Inflation vs. Supply Chain Costs Over Years", x = "Year") +
+  scale_color_manual(values = c("Inflation Rate" = "blue", "Supply Chain Costs" = "red")) +
+  theme_minimal() + scale_x_continuous(breaks = unique(countries$year)) +
+  theme(
+    axis.title.y = element_text(color = "blue"),
+    axis.title.y.right = element_text(color = "red")
+  ) +
+  facet_wrap(~ country_name, scales = "free_y") + # Creates a separate plot for each country
+  theme(
+    strip.text = element_text(size = 10), # Customize facet labels
+    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
+  )
 
-
-
+ggplot(countries, aes(x = year)) +
+  geom_line(aes(y = household_expenditure_ppp, color = "Net nat")) + # Line for Inflation
+  geom_line(aes(y = mechandise_exports_TX.VAL.MRCH.CD.WT, color = "Supply Chain Volatility")) + # Line for Supply Chain Indicator
+  scale_y_continuous(
+    name = "Net nat",
+    sec.axis = sec_axis(~., name = "Supply Chain Volatility")
+  ) +
+  labs(title = "net_nat_income vs. Supply Chain Volatility Over Years", x = "Year") +
+  scale_color_manual(values = c("Net nat" = "blue", "Supply Chain Volatility" = "red")) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_text(color = "blue"),
+    axis.title.y.right = element_text(color = "red")
+  ) + 
+  facet_wrap(~ country_name, scales = "free_y") + # Creates a separate plot for each country
+  theme(
+    strip.text = element_text(size = 10), # Customize facet labels
+    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
+  ) 
 
