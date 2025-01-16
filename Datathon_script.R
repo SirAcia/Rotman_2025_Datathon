@@ -685,8 +685,12 @@ print(significant_predictors_list)
 common_significant_predictors <- Reduce(intersect, significant_predictors_list)
 
 # View the common significant predictors
-print(common_significant_predictors) #2 significant across all models
+print(common_significant_predictors) 
 
+#6 significant across all models
+#' consumer_price"                       "household_expenditure_GDP"           
+#" gdp_percapita_NY.GDP.PCAP.PP.CD"      "gdp_deflator_NY.GDP.DEFL.ZS"         
+# "unemployment_SL.UEM.TOTL.NE.ZS"       "unemployment_youth_SL.UEM.1524.NE.ZS"
 
 
 #################
