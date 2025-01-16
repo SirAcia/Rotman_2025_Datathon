@@ -665,12 +665,6 @@ summary(model_volatility)
 # gdp_deflator_NY.GDP.DEFL.ZS, life_expectancy_SP.DYN.LE00.IN 
 # unemployment_SL.UEM.TOTL.NE.ZS, unemployment_youth_SL.UEM.1524.NE.ZS
 
-#### CHECK BECAUSE CORRELATION HAS BEEN UPDATED ####
-
-#household_expenditure_GDP WITH net_trade_goods_service_BN.GSR.GNFS.CD: (-0.7357246)
-#household_expenditure_GDP WITH net_trade_goods_BN.GSR.MRCH.CD: (-0.7372171)
-#household_expenditure_GDP WITH current_account_USD_BN.CAB.XOKA.CD: (-0.7065403)
-
 #also use variables with high correlation as response
 model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ inflation+
                          inflation_deflator+
@@ -715,30 +709,32 @@ model_netgoods <- lm(net_trade_goods_BN.GSR.MRCH.CD ~ inflation+
 
 summary(model_netgoods)
 
+model_current <- lm(current_account_USD_BN.CAB.XOKA.CD ~ inflation+
+                         inflation_deflator+
+                         consumer_price+
+                         net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                         net_nat_income_NY.ADJ.NNTY.CD+
+                         household_expenditure_GDP+
+                         household_expenditure_per_capita+
+                         household_expenditure_ppp+
+                         gdp_percapita_NY.GDP.PCAP.PP.CD+ 
+                         gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                         gdp_deflator_NY.GDP.DEFL.ZS+   
+                         life_expectancy_SP.DYN.LE00.IN+
+                         health_expenditure_SH.XPD.CHEX.PP.CD+
+                         health_expenditure_per_cap+
+                         gini_SI.POV.GINI+
+                         unemployment_SL.UEM.TOTL.NE.ZS+
+                         unemployment_youth_SL.UEM.1524.NE.ZS, 
+                       data = countries)
 
-model_act <- lm(cbind(net_trade_goods_service_BN.GSR.GNFS.CD, net_trade_goods_BN.GSR.MRCH.CD, current_account_USD_BN.CAB.XOKA.CD)
-                ~ consumer_price+inflation+inflation_deflator+
-                  net_nat_income_NY.ADJ.NNTY.CD+
-                  household_expenditure_GDP+
-                  household_expenditure_per_capita+
-                  household_expenditure_ppp+
-                  gdp_percapita_NY.GDP.PCAP.PP.CD+    
-                  gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
-                  gdp_deflator_NY.GDP.DEFL.ZS+       
-                  life_expectancy_SP.DYN.LE00.IN+
-                  health_expenditure_SH.XPD.CHEX.PP.CD+
-                  health_expenditure_per_cap+
-                  gini_SI.POV.GINI+
-                  unemployment_SL.UEM.TOTL.NE.ZS+
-                  unemployment_youth_SL.UEM.1524.NE.ZS, data = countries)
-
-summary(model_act)
+summary(model_current)
 
 # store predictors that were significant across all the models
 
 # Store the models in a list
 models <- list(model1 = model_cost, model2 = model_volatility, model3 = model_netservice, model4 = model_netgoods, 
-               model5 = model_act)
+               model5 = model_current)
 
 # Initialize a list to store significant predictors for each model
 significant_predictors_list <- list()
@@ -771,9 +767,8 @@ common_significant_predictors <- Reduce(intersect, significant_predictors_list)
 print(common_significant_predictors) 
 
 #6 significant across all models
-#' consumer_price"                       "household_expenditure_GDP"           
-#" gdp_percapita_NY.GDP.PCAP.PP.CD"      "gdp_deflator_NY.GDP.DEFL.ZS"         
-# "unemployment_SL.UEM.TOTL.NE.ZS"       "unemployment_youth_SL.UEM.1524.NE.ZS"
+# "consumer_price"                       "household_expenditure_GDP"           
+# "gdp_percapita_NY.GDP.PCAP.PP.CD"      "unemployment_youth_SL.UEM.1524.NE.ZS"
 
 #### MIXED-EFFECT MODELS ####
 
