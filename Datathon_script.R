@@ -800,6 +800,44 @@ print(common_significant_predictors)
 # "consumer_price"                       "household_expenditure_GDP"           
 # "gdp_percapita_NY.GDP.PCAP.PP.CD"      "unemployment_youth_SL.UEM.1524.NE.ZS"
 
+#### TABLEAU VISUALIZATION ####
+
+# making full dataset for tableau visualization (can sort by region)
+countries_tableau <- countries %>%
+  dplyr::select(-lpi_LP.LPI.INFR.XQ) %>%
+  dplyr::select(country_name,
+                country_code,                 
+                year,                 
+                time_code,
+                consumer_price,                        
+                inflation,                 
+                inflation_deflator,
+                net_nat_income_percapita_NY.ADJ.NNTY.PC.CD,
+                net_nat_income_NY.ADJ.NNTY.CD,
+                household_expenditure_GDP,             
+                household_expenditure_per_capita,
+                household_expenditure_ppp,           
+                gdp_percapita_NY.GDP.PCAP.PP.CD,
+                gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+                gdp_deflator_NY.GDP.DEFL.ZS,
+                life_expectancy_SP.DYN.LE00.IN,
+                health_expenditure_SH.XPD.CHEX.PP.CD,
+                health_expenditure_per_cap,
+                volatility_variable,
+                cost_variable)
+
+# adding regional identifiers 
+countries_tableau <- countries_tableau %>%
+  dplyr::mutate(
+    is_g7 = country_name %in% g7_countries,
+    is_oecd = country_name %in% oecd_countries,
+    is_global_north = country_name %in% north_countries,
+    is_global_south = country_name %in% south_countries
+  )
+
+# writing as .csv 
+write.csv(countries_tableau, "countries_tableau.csv", row.names = FALSE)
+
 #### MIXED-EFFECT MODELS ####
 
 # Creating dataset for regression modeling 
