@@ -16,7 +16,8 @@ library(car)
 library(ggplot2)
 library(multcomp)
 library(lme4)
-
+library(forecast)
+ 
 #### DATA READING ####
 
 # Read raw data and metdata files
@@ -901,5 +902,601 @@ ggplot(countries, aes(x = year)) +
     strip.text = element_text(size = 10), # Customize facet labels
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels for readability
   ) 
+
+#### Forecasting #### 
+forecasting_data <- subset(completed_data, country_name %in% gdp_countries)
+forecasting_data <- forecasting_data %>%
+  dplyr::select(country_name,
+         country_code,
+         year,
+         time_code,
+         gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+         household_expenditure_per_capita,
+         gdp_deflator_NY.GDP.DEFL.ZS,
+         unemployment_SL.UEM.TOTL.NE.ZS,
+         gini_SI.POV.GINI,
+         cost_variable)
+# Convert to date, assume the data is from the beginning of the year
+forecasting_data <- forecasting_data %>% mutate(year = as.Date(paste0(year, "-01-01"), format = "%Y-%m-%d"))
+
+str(forecasting_data)
+
+
+###### Australia
+australia_data <- forecasting_data %>%
+  filter(country_name == "Australia")
+
+# GDP Growth
+aus_gdp_growth_ts <- ts(
+  australia_data$gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+aus_arima_model_gdp <- auto.arima(aus_gdp_growth_ts)
+summary(aus_arima_model_gdp)
+
+forecasted_gdp_growth <- forecast(aus_arima_model_gdp, h = 5)
+
+plot(
+  forecasted_gdp_growth,
+  main = "Forecasted GDP Growth for Australia",
+  ylab = "GDP Growth (%)",
+  xlab = "Year"
+)
+
+# Household Expenditure
+aus_household_ts <- ts(
+  australia_data$household_expenditure_per_capita,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+aus_arima_model_household <- auto.arima(aus_household_ts)
+summary(aus_arima_model_household)
+
+forecasted_household <- forecast(aus_arima_model_household, h = 5)
+
+plot(
+  forecasted_household,
+  main = "Forecasted Household Expenditure for Australia",
+  ylab = "Household Expenditure per Capita (US$)",
+  xlab = "Year"
+)
+
+# GDP Deflator
+aus_gdp_deflator_ts <- ts(
+  australia_data$gdp_deflator_NY.GDP.DEFL.ZS,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+aus_arima_model_deflator <- auto.arima(aus_gdp_deflator_ts)
+summary(aus_arima_model_deflator)
+
+forecasted_deflator <- forecast(aus_arima_model_deflator, h = 5)
+
+plot(
+  forecasted_deflator,
+  main = "Forecasted GDP Deflator for Australia",
+  ylab = "GDP Deflator (%)",
+  xlab = "Year"
+)
+
+# Unemployment
+aus_unemployment_ts <- ts(
+  australia_data$unemployment_SL.UEM.TOTL.NE.ZS,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+aus_arima_model_unemployment <- auto.arima(aus_unemployment_ts)
+summary(aus_arima_model_unemployment)
+
+forecasted_unemployment <- forecast(aus_arima_model_unemployment, h = 5)
+
+plot(
+  forecasted_unemployment,
+  main = "Forecasted Unemployment for Australia",
+  ylab = "Unemployment (%)",
+  xlab = "Year"
+)
+
+# Gini Index
+aus_gini_ts <- ts(
+  australia_data$gini_SI.POV.GINI,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+aus_arima_model_gini <- auto.arima(aus_gini_ts)
+summary(aus_arima_model_gini)
+
+forecasted_gini <- forecast(aus_arima_model_gini, h = 5)
+
+plot(
+  forecasted_gini,
+  main = "Forecasted Gini Index for Australia",
+  ylab = "Gini Index",
+  xlab = "Year"
+)
+
+
+# Extract forecasted predictor values
+future_gdp_growth <- as.numeric(forecasted_gdp_growth$mean)
+future_household <- as.numeric(forecasted_household$mean)
+future_gdp_deflator <- as.numeric(forecasted_deflator$mean)
+future_unemployment <- as.numeric(forecasted_unemployment$mean)
+future_gini <- as.numeric(forecasted_gini$mean)
+
+# Combine historical data and forecasted predictors into a dataframe
+historical_predictors <- data.frame(
+  gdp_growth = as.numeric(aus_gdp_growth_ts),
+  household = as.numeric(aus_household_ts),
+  gdp_deflator = as.numeric(aus_gdp_deflator_ts),
+  unemployment = as.numeric(aus_unemployment_ts),
+  gini = as.numeric(aus_gini_ts)
+)
+
+# Align historical predictors with the cost variable
+aus_cost_variable_ts <- ts(
+  australia_data$cost_variable,
+  start = as.numeric(format(min(australia_data$year), "%Y")),
+  frequency = 1
+)
+
+# Fit a regression model using tslm
+tslm_model <- tslm(aus_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_predictors)
+summary(tslm_model)
+
+# Create future predictors for the forecast
+future_predictors <- data.frame(
+  gdp_growth = future_gdp_growth,
+  household = future_household,
+  gdp_deflator = future_gdp_deflator,
+  unemployment = future_unemployment,
+  gini = future_gini
+)
+
+# Forecast cost_variable using the regression model
+forecasted_cost_variable <- forecast(tslm_model, newdata = future_predictors)
+
+# Plot the forecasted cost variable
+plot(
+  forecasted_cost_variable,
+  main = "Forecasted Cost Variable for Australia",
+  ylab = "Cost Variable",
+  xlab = "Year"
+)
+
+# Extract historical data for predictors
+historical_gdp_growth <- as.numeric(aus_gdp_growth_ts)
+historical_household <- as.numeric(aus_household_ts)
+historical_gdp_deflator <- as.numeric(aus_gdp_deflator_ts)
+historical_unemployment <- as.numeric(aus_unemployment_ts)
+historical_gini <- as.numeric(aus_gini_ts)
+historical_cost_variable <- as.numeric(aus_cost_variable_ts)
+
+# Combine all historical predictors and forecasted predictors
+all_gdp_growth <- c(historical_gdp_growth, future_gdp_growth)
+all_household <- c(historical_household, future_household)
+all_gdp_deflator <- c(historical_gdp_deflator, future_gdp_deflator)
+all_unemployment <- c(historical_unemployment, future_unemployment)
+all_gini <- c(historical_gini, future_gini)
+
+# Combine historical and forecasted cost_variable
+forecasted_cost_variable_values <- as.numeric(forecasted_cost_variable$mean)
+all_cost_variable <- c(historical_cost_variable, forecasted_cost_variable_values)
+
+# Create a new year column to align historical and forecasted years
+years <- seq(from = as.numeric(format(min(australia_data$year), "%Y")),
+             to = as.numeric(format(min(australia_data$year), "%Y")) + length(all_gdp_growth) - 1)
+
+# Create a new dataframe combining historical and forecasted values
+australia_data_updated <- data.frame(
+  year = years,
+  gdp_growth = all_gdp_growth,
+  household = all_household,
+  gdp_deflator = all_gdp_deflator,
+  unemployment = all_unemployment,
+  gini = all_gini,
+  cost_variable = all_cost_variable
+)
+
+# Print the updated dataframe to ensure correctness
+print(head(australia_data_updated))  # View the first few rows
+print(tail(australia_data_updated))  # View the last few rows
+
+
+
+###### Brazil
+brazil_data <- forecasting_data %>%
+  filter(country_name == "Brazil")
+
+# GDP Growth
+brazil_gdp_growth_ts <- ts(
+  brazil_data$gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+brazil_arima_model_gdp <- auto.arima(brazil_gdp_growth_ts)
+forecasted_brazil_gdp_growth <- forecast(brazil_arima_model_gdp, h = 5)
+
+# Household Expenditure
+brazil_household_ts <- ts(
+  brazil_data$household_expenditure_per_capita,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+brazil_arima_model_household <- auto.arima(brazil_household_ts)
+forecasted_brazil_household <- forecast(brazil_arima_model_household, h = 5)
+
+# GDP Deflator
+brazil_gdp_deflator_ts <- ts(
+  brazil_data$gdp_deflator_NY.GDP.DEFL.ZS,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+brazil_arima_model_deflator <- auto.arima(brazil_gdp_deflator_ts)
+forecasted_brazil_deflator <- forecast(brazil_arima_model_deflator, h = 5)
+
+# Unemployment
+brazil_unemployment_ts <- ts(
+  brazil_data$unemployment_SL.UEM.TOTL.NE.ZS,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+brazil_arima_model_unemployment <- auto.arima(brazil_unemployment_ts)
+forecasted_brazil_unemployment <- forecast(brazil_arima_model_unemployment, h = 5)
+
+# Gini Index
+brazil_gini_ts <- ts(
+  brazil_data$gini_SI.POV.GINI,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+brazil_arima_model_gini <- auto.arima(brazil_gini_ts)
+forecasted_brazil_gini <- forecast(brazil_arima_model_gini, h = 5)
+
+# Extract forecasted predictor values
+future_brazil_gdp_growth <- as.numeric(forecasted_brazil_gdp_growth$mean)
+future_brazil_household <- as.numeric(forecasted_brazil_household$mean)
+future_brazil_gdp_deflator <- as.numeric(forecasted_brazil_deflator$mean)
+future_brazil_unemployment <- as.numeric(forecasted_brazil_unemployment$mean)
+future_brazil_gini <- as.numeric(forecasted_brazil_gini$mean)
+
+# Combine historical data and forecasted predictors into a dataframe
+historical_brazil_predictors <- data.frame(
+  gdp_growth = as.numeric(brazil_gdp_growth_ts),
+  household = as.numeric(brazil_household_ts),
+  gdp_deflator = as.numeric(brazil_gdp_deflator_ts),
+  unemployment = as.numeric(brazil_unemployment_ts),
+  gini = as.numeric(brazil_gini_ts)
+)
+
+# Align historical predictors with the cost variable
+brazil_cost_variable_ts <- ts(
+  brazil_data$cost_variable,
+  start = as.numeric(format(min(brazil_data$year), "%Y")),
+  frequency = 1
+)
+
+# Fit a regression model using tslm
+brazil_tslm_model <- tslm(brazil_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_brazil_predictors)
+summary(brazil_tslm_model)
+
+# Create future predictors for the forecast
+future_brazil_predictors <- data.frame(
+  gdp_growth = future_brazil_gdp_growth,
+  household = future_brazil_household,
+  gdp_deflator = future_brazil_gdp_deflator,
+  unemployment = future_brazil_unemployment,
+  gini = future_brazil_gini
+)
+
+# Forecast cost_variable using the regression model
+forecasted_brazil_cost_variable <- forecast(brazil_tslm_model, newdata = future_brazil_predictors)
+
+# Plot the forecasted cost variable
+plot(
+  forecasted_brazil_cost_variable,
+  main = "Forecasted Cost Variable for Brazil",
+  ylab = "Cost Variable",
+  xlab = "Year"
+)
+
+# Extract historical data for predictors
+historical_brazil_gdp_growth <- as.numeric(brazil_gdp_growth_ts)
+historical_brazil_household <- as.numeric(brazil_household_ts)
+historical_brazil_gdp_deflator <- as.numeric(brazil_gdp_deflator_ts)
+historical_brazil_unemployment <- as.numeric(brazil_unemployment_ts)
+historical_brazil_gini <- as.numeric(brazil_gini_ts)
+historical_brazil_cost_variable <- as.numeric(brazil_cost_variable_ts)
+
+# Combine all historical predictors and forecasted predictors
+all_brazil_gdp_growth <- c(historical_brazil_gdp_growth, future_brazil_gdp_growth)
+all_brazil_household <- c(historical_brazil_household, future_brazil_household)
+all_brazil_gdp_deflator <- c(historical_brazil_gdp_deflator, future_brazil_gdp_deflator)
+all_brazil_unemployment <- c(historical_brazil_unemployment, future_brazil_unemployment)
+all_brazil_gini <- c(historical_brazil_gini, future_brazil_gini)
+
+# Combine historical and forecasted cost_variable
+forecasted_brazil_cost_variable_values <- as.numeric(forecasted_brazil_cost_variable$mean)
+all_brazil_cost_variable <- c(historical_brazil_cost_variable, forecasted_brazil_cost_variable_values)
+
+# Create a new year column to align historical and forecasted years
+brazil_years <- seq(from = as.numeric(format(min(brazil_data$year), "%Y")),
+                    to = as.numeric(format(min(brazil_data$year), "%Y")) + length(all_brazil_gdp_growth) - 1)
+
+# Create a new dataframe combining historical and forecasted values
+brazil_data_updated <- data.frame(
+  year = brazil_years,
+  gdp_growth = all_brazil_gdp_growth,
+  household = all_brazil_household,
+  gdp_deflator = all_brazil_gdp_deflator,
+  unemployment = all_brazil_unemployment,
+  gini = all_brazil_gini,
+  cost_variable = all_brazil_cost_variable
+)
+
+
+###### Canada
+canada_data <- forecasting_data %>%
+  filter(country_name == "Canada")
+
+# GDP Growth
+canada_gdp_growth_ts <- ts(
+  canada_data$gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+canada_arima_model_gdp <- auto.arima(canada_gdp_growth_ts)
+forecasted_canada_gdp_growth <- forecast(canada_arima_model_gdp, h = 5)
+
+# Household Expenditure
+canada_household_ts <- ts(
+  canada_data$household_expenditure_per_capita,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+canada_arima_model_household <- auto.arima(canada_household_ts)
+forecasted_canada_household <- forecast(canada_arima_model_household, h = 5)
+
+# GDP Deflator
+canada_gdp_deflator_ts <- ts(
+  canada_data$gdp_deflator_NY.GDP.DEFL.ZS,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+canada_arima_model_deflator <- auto.arima(canada_gdp_deflator_ts)
+forecasted_canada_deflator <- forecast(canada_arima_model_deflator, h = 5)
+
+# Unemployment
+canada_unemployment_ts <- ts(
+  canada_data$unemployment_SL.UEM.TOTL.NE.ZS,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+canada_arima_model_unemployment <- auto.arima(canada_unemployment_ts)
+forecasted_canada_unemployment <- forecast(canada_arima_model_unemployment, h = 5)
+
+# Gini Index
+canada_gini_ts <- ts(
+  canada_data$gini_SI.POV.GINI,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+canada_arima_model_gini <- auto.arima(canada_gini_ts)
+forecasted_canada_gini <- forecast(canada_arima_model_gini, h = 5)
+
+# Extract forecasted predictor values
+future_canada_gdp_growth <- as.numeric(forecasted_canada_gdp_growth$mean)
+future_canada_household <- as.numeric(forecasted_canada_household$mean)
+future_canada_gdp_deflator <- as.numeric(forecasted_canada_deflator$mean)
+future_canada_unemployment <- as.numeric(forecasted_canada_unemployment$mean)
+future_canada_gini <- as.numeric(forecasted_canada_gini$mean)
+
+# Combine historical data and forecasted predictors into a dataframe
+historical_canada_predictors <- data.frame(
+  gdp_growth = as.numeric(canada_gdp_growth_ts),
+  household = as.numeric(canada_household_ts),
+  gdp_deflator = as.numeric(canada_gdp_deflator_ts),
+  unemployment = as.numeric(canada_unemployment_ts),
+  gini = as.numeric(canada_gini_ts)
+)
+
+# Align historical predictors with the cost variable
+canada_cost_variable_ts <- ts(
+  canada_data$cost_variable,
+  start = as.numeric(format(min(canada_data$year), "%Y")),
+  frequency = 1
+)
+
+# Fit a regression model using tslm
+canada_tslm_model <- tslm(canada_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_canada_predictors)
+summary(canada_tslm_model)
+
+# Create future predictors for the forecast
+future_canada_predictors <- data.frame(
+  gdp_growth = future_canada_gdp_growth,
+  household = future_canada_household,
+  gdp_deflator = future_canada_gdp_deflator,
+  unemployment = future_canada_unemployment,
+  gini = future_canada_gini
+)
+
+# Forecast cost_variable using the regression model
+forecasted_canada_cost_variable <- forecast(canada_tslm_model, newdata = future_canada_predictors)
+
+# Plot the forecasted cost variable
+plot(
+  forecasted_canada_cost_variable,
+  main = "Forecasted Cost Variable for Canada",
+  ylab = "Cost Variable",
+  xlab = "Year"
+)
+
+# Combine all historical predictors and forecasted predictors
+all_canada_gdp_growth <- c(as.numeric(canada_gdp_growth_ts), future_canada_gdp_growth)
+all_canada_household <- c(as.numeric(canada_household_ts), future_canada_household)
+all_canada_gdp_deflator <- c(as.numeric(canada_gdp_deflator_ts), future_canada_gdp_deflator)
+all_canada_unemployment <- c(as.numeric(canada_unemployment_ts), future_canada_unemployment)
+all_canada_gini <- c(as.numeric(canada_gini_ts), future_canada_gini)
+
+# Combine historical and forecasted cost_variable
+forecasted_canada_cost_variable_values <- as.numeric(forecasted_canada_cost_variable$mean)
+all_canada_cost_variable <- c(as.numeric(canada_cost_variable_ts), forecasted_canada_cost_variable_values)
+
+# Create a new year column to align historical and forecasted years
+canada_years <- seq(from = as.numeric(format(min(canada_data$year), "%Y")),
+                    to = as.numeric(format(min(canada_data$year), "%Y")) + length(all_canada_gdp_growth) - 1)
+
+# Create a new dataframe combining historical and forecasted values
+canada_data_updated <- data.frame(
+  year = canada_years,
+  gdp_growth = all_canada_gdp_growth,
+  household = all_canada_household,
+  gdp_deflator = all_canada_gdp_deflator,
+  unemployment = all_canada_unemployment,
+  gini = all_canada_gini,
+  cost_variable = all_canada_cost_variable
+)
+
+###### China
+china_data <- forecasting_data %>%
+  filter(country_name == "China")
+
+# GDP Growth
+china_gdp_growth_ts <- ts(
+  china_data$gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+china_arima_model_gdp <- auto.arima(china_gdp_growth_ts)
+forecasted_china_gdp_growth <- forecast(china_arima_model_gdp, h = 5)
+
+# Household Expenditure
+china_household_ts <- ts(
+  china_data$household_expenditure_per_capita,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+china_arima_model_household <- auto.arima(china_household_ts)
+forecasted_china_household <- forecast(china_arima_model_household, h = 5)
+
+# GDP Deflator
+china_gdp_deflator_ts <- ts(
+  china_data$gdp_deflator_NY.GDP.DEFL.ZS,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+china_arima_model_deflator <- auto.arima(china_gdp_deflator_ts)
+forecasted_china_deflator <- forecast(china_arima_model_deflator, h = 5)
+
+# Unemployment
+china_unemployment_ts <- ts(
+  china_data$unemployment_SL.UEM.TOTL.NE.ZS,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+china_arima_model_unemployment <- auto.arima(china_unemployment_ts)
+forecasted_china_unemployment <- forecast(china_arima_model_unemployment, h = 5)
+
+# Gini Index
+china_gini_ts <- ts(
+  china_data$gini_SI.POV.GINI,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+china_arima_model_gini <- auto.arima(china_gini_ts)
+forecasted_china_gini <- forecast(china_arima_model_gini, h = 5)
+
+# Extract forecasted predictor values
+future_china_gdp_growth <- as.numeric(forecasted_china_gdp_growth$mean)
+future_china_household <- as.numeric(forecasted_china_household$mean)
+future_china_gdp_deflator <- as.numeric(forecasted_china_deflator$mean)
+future_china_unemployment <- as.numeric(forecasted_china_unemployment$mean)
+future_china_gini <- as.numeric(forecasted_china_gini$mean)
+
+# Combine historical data and forecasted predictors into a dataframe
+historical_china_predictors <- data.frame(
+  gdp_growth = as.numeric(china_gdp_growth_ts),
+  household = as.numeric(china_household_ts),
+  gdp_deflator = as.numeric(china_gdp_deflator_ts),
+  unemployment = as.numeric(china_unemployment_ts),
+  gini = as.numeric(china_gini_ts)
+)
+
+# Align historical predictors with the cost variable
+china_cost_variable_ts <- ts(
+  china_data$cost_variable,
+  start = as.numeric(format(min(china_data$year), "%Y")),
+  frequency = 1
+)
+
+# Fit a regression model using tslm
+china_tslm_model <- tslm(china_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_china_predictors)
+summary(china_tslm_model)
+
+# Create future predictors for the forecast
+future_china_predictors <- data.frame(
+  gdp_growth = future_china_gdp_growth,
+  household = future_china_household,
+  gdp_deflator = future_china_gdp_deflator,
+  unemployment = future_china_unemployment,
+  gini = future_china_gini
+)
+
+# Forecast cost_variable using the regression model
+forecasted_china_cost_variable <- forecast(china_tslm_model, newdata = future_china_predictors)
+
+# Plot the forecasted cost variable
+plot(
+  forecasted_china_cost_variable,
+  main = "Forecasted Cost Variable for China",
+  ylab = "Cost Variable",
+  xlab = "Year"
+)
+
+# Combine all historical predictors and forecasted predictors
+all_china_gdp_growth <- c(as.numeric(china_gdp_growth_ts), future_china_gdp_growth)
+all_china_household <- c(as.numeric(china_household_ts), future_china_household)
+all_china_gdp_deflator <- c(as.numeric(china_gdp_deflator_ts), future_china_gdp_deflator)
+all_china_unemployment <- c(as.numeric(china_unemployment_ts), future_china_unemployment)
+all_china_gini <- c(as.numeric(china_gini_ts), future_china_gini)
+
+# Combine historical and forecasted cost_variable
+forecasted_china_cost_variable_values <- as.numeric(forecasted_china_cost_variable$mean)
+all_china_cost_variable <- c(as.numeric(china_cost_variable_ts), forecasted_china_cost_variable_values)
+
+# Create a new year column to align historical and forecasted years
+china_years <- seq(from = as.numeric(format(min(china_data$year), "%Y")),
+                   to = as.numeric(format(min(china_data$year), "%Y")) + length(all_china_gdp_growth) - 1)
+
+# Create a new dataframe combining historical and forecasted values
+china_data_updated <- data.frame(
+  year = china_years,
+  gdp_growth = all_china_gdp_growth,
+  household = all_china_household,
+  gdp_deflator = all_china_gdp_deflator,
+  unemployment = all_china_unemployment,
+  gini = all_china_gini,
+  cost_variable = all_china_cost_variable
+)
 
 
