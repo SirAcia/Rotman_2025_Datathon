@@ -575,6 +575,47 @@ model_act <- lm(cbind(net_trade_goods_service_BN.GSR.GNFS.CD, net_trade_goods_BN
 
 summary(model_act)
 
+
+#store predictors that were significant across all the models
+# Example models (replace with your actual models)
+
+# Store the models in a list
+models <- list(model1 = model_cost, model2 = model_volatility, model3 = model_netservice, model4 = model_netgoods, 
+               model5 = model_act)
+
+# Initialize a list to store significant predictors for each model
+significant_predictors_list <- list()
+
+# Loop through each model to extract significant predictors
+for (model_name in names(models)) {
+  # Extract summary of the model
+  model_summary <- summary(models[[model_name]])
+  
+  # Extract coefficients table
+  coefficients_table <- model_summary$coefficients
+  
+  # Identify significant predictors (p-value < 0.05)
+  significant <- rownames(coefficients_table)[coefficients_table[, "Pr(>|t|)"] < 0.05]
+  
+  # Remove intercept from the list of significant predictors
+  significant <- significant[significant != "(Intercept)"]
+  
+  # Store significant predictors in the list
+  significant_predictors_list[[model_name]] <- significant
+}
+
+#significant predictors across all models
+print(significant_predictors_list)
+
+# Find common significant predictors across all models
+common_significant_predictors <- Reduce(intersect, significant_predictors_list)
+
+# View the common significant predictors
+print(common_significant_predictors) #2 significant across all models
+
+
+
+#######rough
 # Plotting the relationship of net_nat_income and supply chain volatility
 ggplot(countries, aes(x = year)) +
   geom_line(aes(y = consumer_price, color = "Net nat")) + # Line for Inflation
