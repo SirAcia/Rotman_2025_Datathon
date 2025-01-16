@@ -17,7 +17,8 @@ library(ggplot2)
 library(multcomp)
 library(lme4)
 library(forecast)
- 
+library(lmerTest)
+
 #### DATA READING ####
 
 # Read raw data and metdata files
@@ -598,6 +599,9 @@ high_cor_pairs <- high_cor_pairs[!duplicated(t(apply(high_cor_pairs, 1, sort))),
 # Output the high correlation pairs
 print(high_cor_pairs)
 
+# Saving high correlation as a .csv file 
+write.csv(high_cor_pairs, file = "high_cor_pairs.csv", row.names = FALSE)
+
 # Cost of living predictors highly correlated with supply chain indicators
 #household_expenditure_GDP WITH net_trade_goods_service_BN.GSR.GNFS.CD: (-0.7357246)
 #household_expenditure_GDP WITH net_trade_goods_BN.GSR.MRCH.CD: (-0.7372171)
@@ -641,6 +645,19 @@ summary(model_cost)
 # household_expenditure_GDP, gdp_percapita_NY.GDP.PCAP.PP.CD, gdp_deflator_NY.GDP.DEFL.ZS, gini_SI.POV.GINI    
 # unemployment_youth_SL.UEM.1524.NE.ZS
 
+# Get the p-values
+p_values_model_cost <- as.data.frame(summary(model_cost)$coefficients[, 4]) 
+
+# writing as .csv 
+write.csv(p_values_model_cost , "model_cost_p_results.csv", row.names = FALSE)
+
+# Get the residuals
+residuals_model_cost <- residuals(model_cost)
+
+# writing as .csv 
+write.csv(residuals_model_cost , "model_cost_residuals.csv", row.names = FALSE)
+
+
 model_volatility <- lm(volatility_variable ~ inflation+
                          inflation_deflator+
                          consumer_price+
@@ -665,6 +682,18 @@ summary(model_volatility)
 # household_expenditure_ppp, gdp_percapita_NY.GDP.PCAP.PP.CD, 
 # gdp_deflator_NY.GDP.DEFL.ZS, life_expectancy_SP.DYN.LE00.IN 
 # unemployment_SL.UEM.TOTL.NE.ZS, unemployment_youth_SL.UEM.1524.NE.ZS
+
+# Get the p-values
+p_values_model_volatility <- as.data.frame(summary(model_volatility)$coefficients[, 4]) 
+
+# writing as .csv 
+write.csv(p_values_model_volatility , "model_volatility_p_results.csv", row.names = FALSE)
+
+# Get the residuals
+residuals_model_volatility <- residuals(model_volatility)
+
+# writing as .csv 
+write.csv(residuals_model_volatility, "model_volatility_residuals.csv", row.names = FALSE)
 
 #also use variables with high correlation as response
 model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ inflation+
@@ -799,6 +828,18 @@ mixed_model_volatility <- lmer(volatility_variable ~ inflation+
 summary(mixed_model_volatility)
 # household_expenditure_ppp, gdp_percapita_NY.GDP.PCAP.PP.CD is SIGNIFICANT, 
 # consumer_price is kinda close 
+
+# Get the p-values
+t_values_mixed_model_volatility <- as.data.frame(summary(mixed_model_volatility)$coefficients[, "t value"])
+
+# writing as .csv 
+write.csv(t_values_mixed_model_volatility , "mixed_model_volatility_t_results.csv", row.names = FALSE)
+
+# Get the residuals
+residuals_mixed_model_volatility <- residuals(mixed_model_volatility)
+
+# writing as .csv 
+write.csv(residuals_model_volatility, "mixed_model_volatility_residuals.csv", row.names = FALSE)
 
 # Testing assumptions for mixed effect volatility model 
 plot(mixed_model_volatility)
@@ -3780,5 +3821,5 @@ countries_data_list <- list(
 combined_data <- do.call(rbind, countries_data_list)
 
 # Saving into a csv file
-#write.csv(combined_data, file = "combined_forecasting_data.csv", row.names = FALSE)
+write.csv(combined_data, file = "combined_forecasting_data.csv", row.names = FALSE)
  
