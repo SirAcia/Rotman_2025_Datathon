@@ -157,7 +157,7 @@ selected_data <- data %>%
   )
 
 selected_data <- selected_data %>%
-  select(country_name, 
+  dplyr::select(country_name, 
          country_code, 
          year, 
          time_code, 
@@ -273,70 +273,72 @@ imputed_data <- mice(
 
 completed_data <- complete(imputed_data, 1)  # Replace '1' with the index of the dataset you want
 
-#### PCA FOR CONPOSITE VARIABLE ####
+#### PCA ANALYSIS ####
+
+#### PCA volatility
 
 supply_chain_volatility <- completed_data %>%
-  select(
-  # LPI 
-  lpi_LP.LPI.INFR.XQ, 
-  # Freight Rate Indices
-  transport_comm_export_TX.VAL.TRAN.ZS.WT, 
-  transport_comm_import_TM.VAL.TRAN.ZS.WT, 
-  transport_export_bop_BX.GSR.TRAN.ZS, 
-  transport_import_bop_BM.GSR.TRAN.ZS, 
-  # BOTH PPI and supply chain variables 
-  manufacturing_GDP_NV.IND.MANF.ZS, 
-  manufacturing_growth_NV.IND.MANF.KD.ZG, 
-  manufacturer_exports_TX.VAL.MANF.ZS.UN, 
-  manufacturer_imports_TM.VAL.MANF.ZS.UN, 
-  # Producer Price Index (PPI) 
-  exports_GDP_NE.EXP.GNFS.ZS, 
-  exports_growth_NE.EXP.GNFS.KD.ZG, 
-  import_unit_index_TM.UVI.MRCH.XD.WD, 
-  import_value_index_TM.VAL.MRCH.XD.WD, 
-  import_volume_index_TM.QTY.MRCH.XD.WD, 
-  oil_rents_NY.GDP.PETR.RT.ZS, 
-  ore_exports_TX.VAL.MMTL.ZS.UN, 
-  ore_imports_TM.VAL.MMTL.ZS.UN, 
-  # Supply Chain Volatility Index 
-  net_trade_goods_service_BN.GSR.GNFS.CD, 
-  net_trade_goods_BN.GSR.MRCH.CD, 
-  trade_GDP_NE.TRD.GNFS.ZS, 
-  trade_services_BG.GSR.NFSV.GD.ZS, 
-  mechandise_exports_TX.VAL.MRCH.CD.WT, 
-  mechandise_imports_TM.VAL.MRCH.CD.WT, 
-  mechandise_trade_TG.VAL.TOTL.GD.ZS, 
-  exports_GDP_NE.EXP.GNFS.ZS, 
-  exports_growth_NE.EXP.GNFS.KD.ZG, 
-  imports_GDP_NE.IMP.GNFS.ZS, 
-  imports_growth_NE.IMP.GNFS.KD.ZG, 
-  current_account_GDP_BN.CAB.XOKA.GD.ZS, 
-  current_account_USD_BN.CAB.XOKA.CD
+  dplyr::select(
+    # LPI 
+    lpi_LP.LPI.INFR.XQ, 
+    # Freight Rate Indices
+    transport_comm_export_TX.VAL.TRAN.ZS.WT, 
+    transport_comm_import_TM.VAL.TRAN.ZS.WT, 
+    transport_export_bop_BX.GSR.TRAN.ZS, 
+    transport_import_bop_BM.GSR.TRAN.ZS, 
+    # BOTH PPI and supply chain variables 
+    manufacturing_GDP_NV.IND.MANF.ZS, 
+    manufacturing_growth_NV.IND.MANF.KD.ZG, 
+    manufacturer_exports_TX.VAL.MANF.ZS.UN, 
+    manufacturer_imports_TM.VAL.MANF.ZS.UN, 
+    # Producer Price Index (PPI) 
+    exports_GDP_NE.EXP.GNFS.ZS, 
+    exports_growth_NE.EXP.GNFS.KD.ZG, 
+    import_unit_index_TM.UVI.MRCH.XD.WD, 
+    import_value_index_TM.VAL.MRCH.XD.WD, 
+    import_volume_index_TM.QTY.MRCH.XD.WD, 
+    oil_rents_NY.GDP.PETR.RT.ZS, 
+    ore_exports_TX.VAL.MMTL.ZS.UN, 
+    ore_imports_TM.VAL.MMTL.ZS.UN, 
+    # Supply Chain Volatility Index 
+    net_trade_goods_service_BN.GSR.GNFS.CD, 
+    net_trade_goods_BN.GSR.MRCH.CD, 
+    trade_GDP_NE.TRD.GNFS.ZS, 
+    trade_services_BG.GSR.NFSV.GD.ZS, 
+    mechandise_exports_TX.VAL.MRCH.CD.WT, 
+    mechandise_imports_TM.VAL.MRCH.CD.WT, 
+    mechandise_trade_TG.VAL.TOTL.GD.ZS, 
+    exports_GDP_NE.EXP.GNFS.ZS, 
+    exports_growth_NE.EXP.GNFS.KD.ZG, 
+    imports_GDP_NE.IMP.GNFS.ZS, 
+    imports_growth_NE.IMP.GNFS.KD.ZG, 
+    current_account_GDP_BN.CAB.XOKA.GD.ZS, 
+    current_account_USD_BN.CAB.XOKA.CD
   )
 
 apply(supply_chain_volatility, 2, mean)
 apply(supply_chain_volatility, 2, var)
 
-pr_out <- prcomp(supply_chain_volatility, scale=TRUE)
+pr_out_volatility <- prcomp(supply_chain_volatility, scale=TRUE)
 
-loadings_volatility <- pr_out$rotation
+loadings_volatility <- pr_out_volatility$rotation
 
-pca_scores <- pr_out$x
+pca_scores <- pr_out_volatility$x
 
 volatility_variable <- pca_scores[, 1]
 
-volatility_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings[, 1]
+volatility_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings_volatility[, 1]
 
 explained_variance_volatility <- (pr_out_volatility$sdev)^2
-explained_variance_ratio_volatility <- explained_variance / sum(explained_variance)
+explained_variance_ratio_volatility <- explained_variance_volatility / sum(explained_variance_volatility)
 explained_variance_ratio_volatility[1]
 
 completed_data$volatility_variable <- (volatility_variable)^2
 
-#### PCA volatility 
+#### PCA cost ####
 
 supply_chain_cost <- completed_data %>%
-  select(
+  dplyr::select(
     # Freight Rate Indices
     transport_comm_export_TX.VAL.TRAN.ZS.WT, 
     transport_comm_import_TM.VAL.TRAN.ZS.WT, 
@@ -367,10 +369,10 @@ pca_scores <- pr_out_cost$x
 
 cost_variable <- pca_scores[, 1]
 
-cost_variable_weighted <- as.matrix(supply_chain_volatility) %*% loadings[, 1]
+cost_variable_weighted <- as.matrix(supply_chain_cost) %*% loadings_cost[, 1]
 
 explained_variance_cost <- (pr_out_cost$sdev)^2
-explained_variance_ratio_cost <- explained_variance / sum(explained_variance)
+explained_variance_ratio_cost <- explained_variance_cost / sum(explained_variance_cost)
 explained_variance_ratio_cost[1]
 
 completed_data$cost_variable <- (cost_variable)^2
@@ -463,7 +465,7 @@ numeric_vars <- countries %>%
   dplyr::select(where(is.numeric)) %>%
   names()
 
-countries[numeric_vars] <- scale(countries [numeric_vars])
+countries[numeric_vars] <- scale(countries[numeric_vars])
 
 countries$country_code <- factor(countries$country_code)
 
@@ -472,8 +474,6 @@ countries$year <- countries$year
 countries$cost_variable <- countries$cost_variable
 
 countries$volatility_variable <- countries$volatility_variable
-
-
 
 ## determine correlation between cost of living indicators and supply chain volatility ##
 #' Define groups of variables
@@ -762,7 +762,7 @@ ggplot(countries, aes(x = year)) +
 
 # Creating dataset for regression modeling 
 lasso_data <- countries %>%
-  select(
+  dplyr::select(
     inflation, 
     inflation_deflator,
     consumer_price,
@@ -786,7 +786,7 @@ lasso_data <- countries %>%
 
 # Selecting numeric variables for scaling 
 numeric_vars <- lasso_data %>%
-  select(where(is.numeric)) %>%
+  dplyr::select(where(is.numeric)) %>%
   names()
 
 # Scaling predictor variables 
@@ -896,6 +896,28 @@ regression_model_cost <- lm(cost_variable ~ inflation+
 )
 
 summary(regression_model_cost)
+
+model_cost <- lm(cost_variable ~ consumer_price+
+                   inflation+
+                   inflation_deflator+
+                   net_nat_income_NY.ADJ.NNTY.CD+
+                   net_nat_income_percapita_NY.ADJ.NNTY.PC.CD+
+                   household_expenditure_GDP+
+                   household_expenditure_per_capita+
+                   household_expenditure_ppp+
+                   gdp_percapita_NY.GDP.PCAP.PP.CD+    
+                   gdp_percapita_growth_NY.GDP.PCAP.KD.ZG+
+                   gdp_deflator_NY.GDP.DEFL.ZS+       
+                   life_expectancy_SP.DYN.LE00.IN+
+                   health_expenditure_SH.XPD.CHEX.PP.CD+
+                   health_expenditure_per_cap+
+                   gini_SI.POV.GINI+
+                   unemployment_SL.UEM.TOTL.NE.ZS+
+                   unemployment_youth_SL.UEM.1524.NE.ZS+
+                   lpi_LP.LPI.INFR.XQ, 
+                 data = countries)
+
+summary(model_cost)
 
 regression_model_volatility <- lm(volatility_variable ~ inflation+
                                     inflation_deflator+
