@@ -1070,7 +1070,7 @@ future_gdp_deflator <- as.numeric(forecasted_deflator$mean)
 future_unemployment <- as.numeric(forecasted_unemployment$mean)
 future_gini <- as.numeric(forecasted_gini$mean)
 
-# Combine historical data and forecasted predictors into a dataframe
+# Combine historical data and forecasted predictors 
 historical_predictors <- data.frame(
   gdp_growth = as.numeric(aus_gdp_growth_ts),
   household = as.numeric(aus_household_ts),
@@ -1079,7 +1079,7 @@ historical_predictors <- data.frame(
   gini = as.numeric(aus_gini_ts)
 )
 
-# Align historical predictors with the cost variable
+# Create a time series for cost_variable
 aus_cost_variable_ts <- ts(
   australia_data$cost_variable,
   start = as.numeric(format(min(australia_data$year), "%Y")),
@@ -1133,6 +1133,15 @@ all_cost_variable <- c(historical_cost_variable, forecasted_cost_variable_values
 years <- seq(from = as.numeric(format(min(australia_data$year), "%Y")),
              to = as.numeric(format(min(australia_data$year), "%Y")) + length(all_gdp_growth) - 1)
 
+# Extract the historical cost variable
+historical_aus_cost_variable <- as.numeric(aus_cost_variable_ts)
+
+# Extract the 80% confidence intervals for the forecasted cost_variable
+forecasted_aus_cost_variable_lo80 <- c(rep(NA, length(historical_aus_cost_variable)),
+                                       forecasted_cost_variable$lower[, 1])
+forecasted_aus_cost_variable_hi80 <- c(rep(NA, length(historical_aus_cost_variable)),
+                                       forecasted_cost_variable$upper[, 1])
+
 # Create a new dataframe combining historical and forecasted values
 australia_data_updated <- data.frame(
   year = years,
@@ -1141,14 +1150,10 @@ australia_data_updated <- data.frame(
   gdp_deflator = all_gdp_deflator,
   unemployment = all_unemployment,
   gini = all_gini,
-  cost_variable = all_cost_variable
+  cost_variable = all_cost_variable,
+  cost_variable_lo80 = forecasted_aus_cost_variable_lo80,
+  cost_variable_hi80 = forecasted_aus_cost_variable_hi80
 )
-
-# Print the updated dataframe to ensure correctness
-print(head(australia_data_updated))  # View the first few rows
-print(tail(australia_data_updated))  # View the last few rows
-
-
 
 ###### Brazil
 brazil_data <- forecasting_data %>%
@@ -1211,7 +1216,7 @@ future_brazil_gdp_deflator <- as.numeric(forecasted_brazil_deflator$mean)
 future_brazil_unemployment <- as.numeric(forecasted_brazil_unemployment$mean)
 future_brazil_gini <- as.numeric(forecasted_brazil_gini$mean)
 
-# Combine historical data and forecasted predictors into a dataframe
+# Combine historical data and forecasted predictors 
 historical_brazil_predictors <- data.frame(
   gdp_growth = as.numeric(brazil_gdp_growth_ts),
   household = as.numeric(brazil_household_ts),
@@ -1220,14 +1225,14 @@ historical_brazil_predictors <- data.frame(
   gini = as.numeric(brazil_gini_ts)
 )
 
-# Align historical predictors with the cost variable
+# Create a time series for cost_variable
 brazil_cost_variable_ts <- ts(
   brazil_data$cost_variable,
   start = as.numeric(format(min(brazil_data$year), "%Y")),
   frequency = 1
 )
 
-# Fit a regression model using tslm
+# Fit the tslm regression 
 brazil_tslm_model <- tslm(brazil_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_brazil_predictors)
 summary(brazil_tslm_model)
 
@@ -1240,7 +1245,7 @@ future_brazil_predictors <- data.frame(
   gini = future_brazil_gini
 )
 
-# Forecast cost_variable using the regression model
+# Forecast cost_variable 
 forecasted_brazil_cost_variable <- forecast(brazil_tslm_model, newdata = future_brazil_predictors)
 
 # Plot the forecasted cost variable
@@ -1251,7 +1256,7 @@ plot(
   xlab = "Year"
 )
 
-# Extract historical data for predictors
+# Historical data for predictors
 historical_brazil_gdp_growth <- as.numeric(brazil_gdp_growth_ts)
 historical_brazil_household <- as.numeric(brazil_household_ts)
 historical_brazil_gdp_deflator <- as.numeric(brazil_gdp_deflator_ts)
@@ -1259,7 +1264,7 @@ historical_brazil_unemployment <- as.numeric(brazil_unemployment_ts)
 historical_brazil_gini <- as.numeric(brazil_gini_ts)
 historical_brazil_cost_variable <- as.numeric(brazil_cost_variable_ts)
 
-# Combine all historical predictors and forecasted predictors
+# Combine historical and forecasted predictors
 all_brazil_gdp_growth <- c(historical_brazil_gdp_growth, future_brazil_gdp_growth)
 all_brazil_household <- c(historical_brazil_household, future_brazil_household)
 all_brazil_gdp_deflator <- c(historical_brazil_gdp_deflator, future_brazil_gdp_deflator)
@@ -1270,9 +1275,18 @@ all_brazil_gini <- c(historical_brazil_gini, future_brazil_gini)
 forecasted_brazil_cost_variable_values <- as.numeric(forecasted_brazil_cost_variable$mean)
 all_brazil_cost_variable <- c(historical_brazil_cost_variable, forecasted_brazil_cost_variable_values)
 
-# Create a new year column to align historical and forecasted years
+# Create year column
 brazil_years <- seq(from = as.numeric(format(min(brazil_data$year), "%Y")),
                     to = as.numeric(format(min(brazil_data$year), "%Y")) + length(all_brazil_gdp_growth) - 1)
+
+# Get the historical cost variable
+historical_brazil_cost_variable <- as.numeric(brazil_cost_variable_ts)
+
+# Get the 80% confidence intervals for the forecasted cost_variable
+forecasted_brazil_cost_variable_lo80 <- c(rep(NA, length(historical_brazil_cost_variable)),
+                                          forecasted_brazil_cost_variable$lower[, 1])
+forecasted_brazil_cost_variable_hi80 <- c(rep(NA, length(historical_brazil_cost_variable)),
+                                          forecasted_brazil_cost_variable$upper[, 1])
 
 # Create a new dataframe combining historical and forecasted values
 brazil_data_updated <- data.frame(
@@ -1282,7 +1296,9 @@ brazil_data_updated <- data.frame(
   gdp_deflator = all_brazil_gdp_deflator,
   unemployment = all_brazil_unemployment,
   gini = all_brazil_gini,
-  cost_variable = all_brazil_cost_variable
+  cost_variable = all_brazil_cost_variable,
+  cost_variable_lo80 = forecasted_brazil_cost_variable_lo80,
+  cost_variable_hi80 = forecasted_brazil_cost_variable_hi80
 )
 
 
@@ -1347,7 +1363,7 @@ future_canada_gdp_deflator <- as.numeric(forecasted_canada_deflator$mean)
 future_canada_unemployment <- as.numeric(forecasted_canada_unemployment$mean)
 future_canada_gini <- as.numeric(forecasted_canada_gini$mean)
 
-# Combine historical data and forecasted predictors into a dataframe
+# Combine historical data and forecasted predictors 
 historical_canada_predictors <- data.frame(
   gdp_growth = as.numeric(canada_gdp_growth_ts),
   household = as.numeric(canada_household_ts),
@@ -1356,14 +1372,14 @@ historical_canada_predictors <- data.frame(
   gini = as.numeric(canada_gini_ts)
 )
 
-# Align historical predictors with the cost variable
+# Create a time series for cost_variable
 canada_cost_variable_ts <- ts(
   canada_data$cost_variable,
   start = as.numeric(format(min(canada_data$year), "%Y")),
   frequency = 1
 )
 
-# Fit a regression model using tslm
+# Fit the tlsm regression
 canada_tslm_model <- tslm(canada_cost_variable_ts ~ gdp_growth + household + gdp_deflator + unemployment + gini, data = historical_canada_predictors)
 summary(canada_tslm_model)
 
@@ -1376,7 +1392,7 @@ future_canada_predictors <- data.frame(
   gini = future_canada_gini
 )
 
-# Forecast cost_variable using the regression model
+# Forecast cost_variable 
 forecasted_canada_cost_variable <- forecast(canada_tslm_model, newdata = future_canada_predictors)
 
 # Plot the forecasted cost variable
@@ -1387,7 +1403,7 @@ plot(
   xlab = "Year"
 )
 
-# Combine all historical predictors and forecasted predictors
+# Combine historical forecasted predictors
 all_canada_gdp_growth <- c(as.numeric(canada_gdp_growth_ts), future_canada_gdp_growth)
 all_canada_household <- c(as.numeric(canada_household_ts), future_canada_household)
 all_canada_gdp_deflator <- c(as.numeric(canada_gdp_deflator_ts), future_canada_gdp_deflator)
@@ -1398,9 +1414,18 @@ all_canada_gini <- c(as.numeric(canada_gini_ts), future_canada_gini)
 forecasted_canada_cost_variable_values <- as.numeric(forecasted_canada_cost_variable$mean)
 all_canada_cost_variable <- c(as.numeric(canada_cost_variable_ts), forecasted_canada_cost_variable_values)
 
-# Create a new year column to align historical and forecasted years
+# Create year column
 canada_years <- seq(from = as.numeric(format(min(canada_data$year), "%Y")),
                     to = as.numeric(format(min(canada_data$year), "%Y")) + length(all_canada_gdp_growth) - 1)
+
+# Get the historical cost variable
+historical_canada_cost_variable <- as.numeric(canada_cost_variable_ts)
+
+# Get the 80% confidence intervals for the forecasted cost_variable
+forecasted_canada_cost_variable_lo80 <- c(rep(NA, length(historical_canada_cost_variable)),
+                                          forecasted_canada_cost_variable$lower[, 1])
+forecasted_canada_cost_variable_hi80 <- c(rep(NA, length(historical_canada_cost_variable)),
+                                          forecasted_canada_cost_variable$upper[, 1])
 
 # Create a new dataframe combining historical and forecasted values
 canada_data_updated <- data.frame(
@@ -1410,7 +1435,9 @@ canada_data_updated <- data.frame(
   gdp_deflator = all_canada_gdp_deflator,
   unemployment = all_canada_unemployment,
   gini = all_canada_gini,
-  cost_variable = all_canada_cost_variable
+  cost_variable = all_canada_cost_variable,
+  cost_variable_lo80 = forecasted_canada_cost_variable_lo80,
+  cost_variable_hi80 = forecasted_canada_cost_variable_hi80
 )
 
 ###### China
