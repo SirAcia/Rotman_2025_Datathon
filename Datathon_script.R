@@ -526,9 +526,10 @@ high_cor_pairs <- high_cor_pairs[!duplicated(t(apply(high_cor_pairs, 1, sort))),
 # Output the high correlation pairs
 print(high_cor_pairs)
 
-#household_expenditure_ppp  and mechandise_exports_TX.VAL.MRCH.CD.WT (0.7027965)
-#net_nat_income_NY.ADJ.NNTY.CD mechandise_imports_TM.VAL.MRCH.CD.WT   0.7663589
-#household_expenditure_ppp mechandise_imports_TM.VAL.MRCH.CD.WT   0.8729368
+# Cost of living predictors highly correlated with supply chain indicators
+#household_expenditure_ppp with mechandise_exports_TX.VAL.MRCH.CD.WT (0.7027965)
+#household_expenditure_ppp  with mechandise_imports_TM.VAL.MRCH.CD.WT (0.7663589)
+#household_expenditure_ppp with mechandise_imports_TM.VAL.MRCH.CD.WT   (0.8729368)
          
 ###correlation of cost of living and composite supply chain indicators
 #' Compute correlation matrix between group1 and group2
