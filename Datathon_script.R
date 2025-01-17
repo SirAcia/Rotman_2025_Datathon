@@ -648,17 +648,44 @@ summary(model_cost)
 # household_expenditure_GDP, gdp_percapita_NY.GDP.PCAP.PP.CD, gdp_deflator_NY.GDP.DEFL.ZS, gini_SI.POV.GINI    
 # unemployment_youth_SL.UEM.1524.NE.ZS
 
-# Get the p-values
-p_values_model_cost <- as.data.frame(summary(model_cost)$coefficients[, 4]) 
+# Get the p-values, storing as df 
+p_values_model_cost <- as.data.frame(summary(model_cost)$coefficients[, 4])
+
+# Naming coefficients 
+predictor_variables <- c(
+  "Intercept",
+  "Inflation",         
+  "Inflation Deflator",
+  "Consumer Price",
+  "Net National Income, per Capita",
+  "Net National Income, ($US)",
+  "Household Expenditure, (%GDP)",
+  "Household Expenditure, per Capita",
+  "Household Expenditure, PPP",
+  "GDP, per Capita",
+  "GDP, per Capita Growth (%)",
+  "GDP Deflator",
+  "Life Expectancy",
+  "Health Expenditure, ($US)",
+  "Health Expenditure, per Capita",
+  "Gini Coefficient",
+  "Total Unemployment, (%)",
+  "Youth Unemployment, (%)"
+)
+
+# binding coeffcient names 
+p_values_model_cost$variables <- predictor_variables
+
+# renaming columns
+p_values_model_cost <- p_values_model_cost %>%
+  dplyr::select(variables, `summary(model_cost)$coefficients[, 4]`) %>%
+  rename("Variables" = variables, "p-values" = `summary(model_cost)$coefficients[, 4]`) 
+
+# removing intercept 
+p_values_model_cost <- p_values_model_cost[-1,]
 
 # writing as .csv 
 write.csv(p_values_model_cost , "model_cost_p_results.csv", row.names = FALSE)
-
-# Get the residuals
-residuals_model_cost <- residuals(model_cost)
-
-# writing as .csv 
-write.csv(residuals_model_cost , "model_cost_residuals.csv", row.names = FALSE)
 
 
 model_volatility <- lm(volatility_variable ~ inflation+
@@ -686,17 +713,45 @@ summary(model_volatility)
 # gdp_deflator_NY.GDP.DEFL.ZS, life_expectancy_SP.DYN.LE00.IN 
 # unemployment_SL.UEM.TOTL.NE.ZS, unemployment_youth_SL.UEM.1524.NE.ZS
 
-# Get the p-values
-p_values_model_volatility <- as.data.frame(summary(model_volatility)$coefficients[, 4]) 
+# Get the p-values, storing as df 
+p_values_model_volatility <- as.data.frame(summary(model_volatility)$coefficients[, 4])
+
+# Naming coefficients 
+cost_variables <- c(
+  "Intercept",
+  "Inflation",         
+  "Inflation Deflator",
+  "Consumer Price",
+  "Net National Income, per Capita",
+  "Net National Income, ($US)",
+  "Household Expenditure, (%GDP)",
+  "Household Expenditure, per Capita",
+  "Household Expenditure, PPP",
+  "GDP, per Capita",
+  "GDP, per Capita Growth (%)",
+  "GDP Deflator",
+  "Life Expectancy",
+  "Health Expenditure, ($US)",
+  "Health Expenditure, per Capita",
+  "Gini Coefficient",
+  "Total Unemployment, (%)",
+  "Youth Unemployment, (%)"
+)
+
+# binding coeffcient names 
+p_values_model_volatility$variables <- cost_variables
+
+# renaming columns
+p_values_model_volatility <- p_values_model_volatility %>%
+  dplyr::select(variables, `summary(model_volatility)$coefficients[, 4]`) %>%
+  rename("Variables" = variables, "p-values" = `summary(model_volatility)$coefficients[, 4]`) 
+
+# remving intercept 
+p_values_model_volatility <- p_values_model_volatility[-1,]
 
 # writing as .csv 
 write.csv(p_values_model_volatility , "model_volatility_p_results.csv", row.names = FALSE)
 
-# Get the residuals
-residuals_model_volatility <- residuals(model_volatility)
-
-# writing as .csv 
-write.csv(residuals_model_volatility, "model_volatility_residuals.csv", row.names = FALSE)
 
 #also use variables with high correlation as response
 model_netservice <- lm(net_trade_goods_service_BN.GSR.GNFS.CD ~ inflation+
@@ -826,8 +881,11 @@ countries_tableau <- countries %>%
                 life_expectancy_SP.DYN.LE00.IN,
                 health_expenditure_SH.XPD.CHEX.PP.CD,
                 health_expenditure_per_cap,
+                unemployment_youth_SL.UEM.1524.NE.ZS,
+                unemployment_SL.UEM.TOTL.NE.ZS,
+                gini_SI.POV.GINI,
                 volatility_variable,
-                cost_variable)
+                cost_variable) 
 
 # adding regional identifiers 
 countries_tableau <- countries_tableau %>%
@@ -836,17 +894,61 @@ countries_tableau <- countries_tableau %>%
     is_oecd = country_name %in% oecd_countries,
     is_global_north = country_name %in% north_countries,
     is_global_south = country_name %in% south_countries
-  )
+  ) 
 
+# Making collpased regional variables
+# global region 
+countries_tableau$global_region <- ifelse(countries_tableau$is_global_north == TRUE, "Global North", "Global South")
+
+# OECD status 
+countries_tableau$OECD_status<- ifelse(countries_tableau$is_oecd == TRUE, "OECD Member", "Non OECD-Member")
+
+# G7 status 
+countries_tableau$G7_status<- ifelse(countries_tableau$is_oecd == TRUE, "G7 Member", "Non G7 Member")
+
+
+countries_tableau <- countries_tableau %>%
+  dplyr::select(-is_g7, -is_oecd, -is_global_north, -is_global_south) %>%
+  rename("Country Name" = country_name,
+         "Country Code" = country_code,                 
+         "Year" = year,                 
+         "Time Code" = time_code,
+         "Consumer Price" = consumer_price,                        
+         "Inflation" = inflation,                 
+         "Inflation Deflator" = inflation_deflator,
+         "Net National Income, per Capita" = net_nat_income_percapita_NY.ADJ.NNTY.PC.CD,
+         "Net National Income, ($US)" = net_nat_income_NY.ADJ.NNTY.CD,
+         "Household Expenditure, (%GDP)" = household_expenditure_GDP,             
+         "Household Expenditure, per Capita" = household_expenditure_per_capita,
+         "Household Expenditure, PPP" = household_expenditure_ppp,           
+         "GDP, per Capita" = gdp_percapita_NY.GDP.PCAP.PP.CD,
+         "GDP, per Capita Growth (%)" = gdp_percapita_growth_NY.GDP.PCAP.KD.ZG,
+         "GDP Deflator" = gdp_deflator_NY.GDP.DEFL.ZS,
+         "Life Expectancy" = life_expectancy_SP.DYN.LE00.IN,
+         "Health Expenditure, ($US)" = health_expenditure_SH.XPD.CHEX.PP.CD,
+         "Health Expenditure, per Capita" = health_expenditure_per_cap,
+         "Youth Unemployment, (%)" = unemployment_youth_SL.UEM.1524.NE.ZS,
+         "Total Unemployment, (%)" = unemployment_SL.UEM.TOTL.NE.ZS,
+         "Gini Coefficient" = gini_SI.POV.GINI,
+         "Composite Supply Chain Volatility Index" = volatility_variable,
+         "Composite Supply Chain Cost Index" = cost_variable,
+         "G7 Status" = G7_status,
+         "OECD Status" = OECD_status,
+         "Global Region" = global_region)
+
+# writing as .csv 
+write.csv(countries_tableau, "countries_tableau.csv", row.names = FALSE)
+
+# making long format
 countries_tableau_long <- countries_tableau %>%
   pivot_longer(
-    cols = -c(country_name, country_code, year, time_code), # Columns to keep as is
-    names_to = "Indicator",  # Column to store the variable names
-    values_to = "Value"      # Column to store the values
+    cols = -c(`Country Name`, `Country Code`, Year, `Time Code`, `G7 Status`, `OECD Status`, `Global Region`), 
+    names_to = "Indicator",  
+    values_to = "Value"      
   )
 
 # writing as .csv 
-write.csv(countries_tableau_long, "countries_tableau.csv", row.names = FALSE)
+write.csv(countries_tableau_long, "countries_tableau_long.csv", row.names = FALSE)
 
 #### MIXED-EFFECT MODELS ####
 
