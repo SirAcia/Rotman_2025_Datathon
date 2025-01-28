@@ -20,7 +20,8 @@ Switzerland, Spain, United Kingdom, United States.
 Repository Structure:
 - Datathon_Analysis.R: Full script for all analysis
 - Datathon_data-2025-Raw.xlsx: Raw data file 
-- Datathon_data-2025-Metadata.xlsx: Raw metadata file 
+- Datathon_data-2025-Metadata.xlsx: Raw metadata file
+- Series of .csv files: Included for posterity and transparency, generated for visualization in Tableau
 
 Acknowledgments:
 We thank the Rotman Datathon organizers for hosting this competition and providing access to the dataset. 
